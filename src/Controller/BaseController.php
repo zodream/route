@@ -99,6 +99,7 @@ abstract class BaseController extends Action {
      * @param string $action
      * @param array $vars
      * @return mixed
+     * @throws Exception
      */
 	protected function runActionMethod($action, $vars = array()) {
 		return call_user_func_array(
@@ -148,12 +149,14 @@ abstract class BaseController extends Action {
         return Request::get($name);
     }
 
-	/**
-	 * 加载其他控制器的方法
-	 * @param static|string $controller
-	 * @param string $actionName
-	 * @param array $parameters
-	 */
+    /**
+     * 加载其他控制器的方法
+     * @param static|string $controller
+     * @param string $actionName
+     * @param array $parameters
+     * @return string|Response
+     * @throws Exception
+     */
 	public function forward(
 	    $controller,
         $actionName = 'index' ,

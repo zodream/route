@@ -200,6 +200,8 @@ abstract class Controller extends BaseController {
      * @param string $name
      * @param array $data
      * @return string
+     * @throws \Exception
+     * @throws \Zodream\Disk\FileException
      */
     protected function renderHtml($name = null, $data = []) {
         if (is_array($name)) {

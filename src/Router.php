@@ -9,6 +9,11 @@ namespace Zodream\Route;
 use Zodream\Service\Config;
 use Zodream\Http\Uri;
 
+defined('APP_CONTROLLER') || define('APP_CONTROLLER', Config::app('controller'));
+defined('APP_ACTION') || define('APP_ACTION', Config::app('action'));
+defined('APP_MODEL') || define('APP_MODEL', Config::app('model'));
+defined('APP_MODULE') || define('APP_MODULE', 'Default');
+
 class Router {
 	/**
 	 * @var Route[]
