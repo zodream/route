@@ -75,7 +75,18 @@ abstract class Module extends Action {
     }
 
     /**
-     * @return Migration
+     * 填充测试数据
+     */
+    public function seeder() {
+        $migration = $this->getMigration();
+        if (!$migration instanceof Migration) {
+            return;
+        }
+        $migration->seed();
+    }
+
+    /**
+     * @return Migration|void
      */
     public function getMigration() {
         return;
