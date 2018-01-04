@@ -146,10 +146,11 @@ class Route {
 		return $this->runDefault($action);
 	}
 
-	/**
-	 * @param $response
-	 * @return Response
-	 */
+    /**
+     * @param $response
+     * @return Response
+     * @throws \Exception
+     */
 	protected function parseResponse($response) {
 		if ($response instanceof Response) {
 			return $response;
@@ -160,11 +161,12 @@ class Route {
 		return new Response($response);
 	}
 
-	/**
-	 * 执行动态方法
-	 * @param $arg
-	 * @return mixed
-	 */
+    /**
+     * 执行动态方法
+     * @param $arg
+     * @return mixed
+     * @throws \Exception
+     */
 	protected function runClassAndAction($arg) {
 		list($class, $action) = explode('@', $arg);
 		if (!class_exists($class)) {
@@ -181,7 +183,12 @@ class Route {
 		return call_user_func_array(array(new $class, $action), $arguments);
 	}
 
-	protected function runDefault($path) {
+    /**
+     * @param $path
+     * @return mixed
+     * @throws \Exception
+     */
+    protected function runDefault($path) {
         if (!empty($path)) {
             $modules = Config::modules();
             foreach ($modules as $key => $module) {
@@ -198,6 +205,11 @@ class Route {
         return strpos($path, $module) === 0;
     }
 
+    /**
+     * @param $module
+     * @return string
+     * @throws \Exception
+     */
     protected function getRealModule($module) {
 	    if (class_exists($module)) {
 	        return $module;
@@ -209,6 +221,12 @@ class Route {
         throw new \Exception($module.' Module NO EXIST!');
     }
 
+    /**
+     * @param $path
+     * @param $module
+     * @return mixed
+     * @throws \Exception
+     */
     protected function runModule($path, $module) {
 	    $module = $this->getRealModule($module);
         $module = new $module();
@@ -221,6 +239,12 @@ class Route {
         return $this->runController($class, $action);
     }
 
+    /**
+     * @param $class
+     * @param $action
+     * @return mixed
+     * @throws \Exception
+     */
     protected function runController($class, $action) {
 	    $class .= APP_CONTROLLER;
         if (!class_exists($class)) {
@@ -229,6 +253,12 @@ class Route {
         return $this->runClass($class, $action);
     }
 
+    /**
+     * @param $instance
+     * @param $action
+     * @return mixed
+     * @throws \Exception
+     */
     protected function runClass($instance, $action) {
 	    if (is_string($instance)) {
 	        $instance = new $instance;

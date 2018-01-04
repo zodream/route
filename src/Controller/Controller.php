@@ -40,7 +40,14 @@ abstract class Controller extends BaseController {
 		}
 	}
 
-	public function runMethod($action, array $vars = array()) {
+    /**
+     * @param string $action
+     * @param array $vars
+     * @return string|Response
+     * @throws \Exception
+     * @throws \HttpRequestException
+     */
+    public function runMethod($action, array $vars = array()) {
         if ($this->canCSRFValidate
             && Request::isPost()
             && !VerifyCsrfToken::verify()) {
@@ -53,6 +60,12 @@ abstract class Controller extends BaseController {
         return parent::runMethod($action, $vars);
     }
 
+    /**
+     * @param string $action
+     * @param array $vars
+     * @return mixed|Response
+     * @throws \Exception
+     */
     protected function runActionMethod($action, $vars = array()) {
         $arguments = $this->getActionArguments($action, $vars);
         if ($this->canCache && Request::isGet() &&
@@ -67,6 +80,7 @@ abstract class Controller extends BaseController {
      * 执行缓存
      * @param $key
      * @return bool|string
+     * @throws \Exception
      */
     public function runCache($key = null) {
         if (DEBUG) {
@@ -120,6 +134,7 @@ abstract class Controller extends BaseController {
     /**
      * @param string|callable $role
      * @return bool|Response
+     * @throws \Exception
      */
     private function processFilter($role) {
         if (is_callable($role)) {
@@ -144,6 +159,7 @@ abstract class Controller extends BaseController {
      * VALIDATE ONE FILTER
      * @param string $role
      * @return true|Response
+     * @throws \Exception
      */
     private function processOneFilter($role) {
         if ($role === '*') {
@@ -176,8 +192,9 @@ abstract class Controller extends BaseController {
      * 传递数据
      *
      * @param string|array $key 要传的数组或关键字
-     * @param string $value  要传的值
+     * @param string $value 要传的值
      * @return static
+     * @throws \Exception
      */
     public function send($key, $value = null) {
         Factory::view()->set($key, $value);
@@ -190,6 +207,7 @@ abstract class Controller extends BaseController {
      * @param string $name 视图的文件名
      * @param array $data 要传的数据
      * @return Response
+     * @throws \Exception
      */
     public function show($name = null, $data = array()) {
         return $this->showContent($this->renderHtml($name, $data));
@@ -232,13 +250,21 @@ abstract class Controller extends BaseController {
      * 直接返回文本
      * @param string $html
      * @return Response
+     * @throws \Exception
      */
     public function showContent($html) {
         return Factory::response()->html($html);
     }
 
 
-
+    /**
+     * @param $url
+     * @param $message
+     * @param int $time
+     * @param int $status
+     * @return Response
+     * @throws \Exception
+     */
     public function redirectWithMessage($url, $message, $time = 4, $status = 404) {
         return $this->redirect($url, $time);
     }
@@ -248,16 +274,25 @@ abstract class Controller extends BaseController {
      * @param string $url
      * @param int $time
      * @return Response
+     * @throws \Exception
      */
     public function redirect($url, $time = 0) {
         return Factory::response()
             ->redirect(Url::to($url), $time);
     }
 
+    /**
+     * @return Response
+     * @throws \Exception
+     */
     public function goHome() {
         return $this->redirect(Url::getRoot());
     }
 
+    /**
+     * @return Response
+     * @throws \Exception
+     */
     public function goBack() {
         return $this->redirect(Url::referrer());
     }

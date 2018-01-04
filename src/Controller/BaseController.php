@@ -74,8 +74,13 @@ abstract class BaseController extends Action {
 	protected function getActionName($action) {
 	    return $action.APP_ACTION;
     }
-	
-	private function runClassMethod($action) {
+
+    /**
+     * @param $action
+     * @return mixed|null|string|Response
+     * @throws Exception
+     */
+    private function runClassMethod($action) {
 		$class = $this->actions()[$action];
 		if (is_callable($class)) {
 			return call_user_func($class);

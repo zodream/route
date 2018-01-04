@@ -49,6 +49,7 @@ abstract class RestController extends BaseController  {
      * @param array $data
      * @param int $statusCode
      * @return Response
+     * @throws \Exception
      */
     protected function json($data, $statusCode = 200) {
         Factory::response()->setStatusCode($statusCode);

@@ -18,9 +18,11 @@ abstract class Action {
 
     /**
      * 其他Action正式执行的入口 允许返回值
-     * @return string|Response
+     * @return string|Response|null
      */
-    public function run() {}
+    public function run() {
+        return null;
+    }
     
     public function finalize() {  }
 }
