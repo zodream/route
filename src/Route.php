@@ -20,6 +20,8 @@ class Route {
 
 	protected $uri;
 
+	protected $moduleUri;
+
 	protected $methods = [];
 
 	protected $action = [];
@@ -112,10 +114,11 @@ class Route {
         return $this;
     }
 
-	/**
-	 * 执行路由
-	 * @return Response
-	 */
+    /**
+     * 执行路由
+     * @return Response
+     * @throws \Exception
+     */
 	public function run() {
 		return $this->parseResponse($this->runAction());
 	}
@@ -189,13 +192,18 @@ class Route {
      * @throws \Exception
      */
     protected function runDefault($path) {
-        if (!empty($path)) {
-            $modules = Config::modules();
-            foreach ($modules as $key => $module) {
-                if ($this->isMatch($path, $key)) {
-                    return $this->runModule(Str::firstReplace($path, $key), $module);
-                }
+        $modules = Config::modules();
+        foreach ($modules as $key => $module) {
+            if (!$this->isMatch($path, $key)) {
+                continue;
             }
+            // 要记录当前模块所对应的路径
+            $this->moduleUri = $key;
+            return $this->runModule(Str::firstReplace($path, $key), $module);
+        }
+        // 默认模块
+        if (array_key_exists('default', $modules)) {
+            return $this->runModule($path, $modules['default']);
         }
         list($class, $action) = $this->getClassAndAction($path);
         return $this->runController('Service\\'.APP_MODULE.'\\'.$class, $action);
