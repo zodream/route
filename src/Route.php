@@ -13,14 +13,13 @@ use Zodream\Service\Factory;
 use Zodream\Helpers\Arr;
 use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Http\Response;
+use Zodream\Service\Routing\Url;
 
 class Route {
 
     const PATTERN = '#{([\w_]+)}#i';
 
 	protected $uri;
-
-	protected $moduleUri;
 
 	protected $methods = [];
 
@@ -198,7 +197,7 @@ class Route {
                 continue;
             }
             // 要记录当前模块所对应的路径
-            $this->moduleUri = $key;
+            Url::setModulePath($key);
             return $this->runModule(Str::firstReplace($path, $key), $module);
         }
         // 默认模块
