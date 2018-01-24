@@ -3,7 +3,7 @@
     "description": "route",
     "keywords": ["route", "zodream"],
     "homepage": "https://github.com/zodream/html",
-    "license": "Apache Licence 2.0",
+    "license": "MIT",
     "authors": [
         {
             "name" : "Jason Zou",
