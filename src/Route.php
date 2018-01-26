@@ -127,8 +127,12 @@ class Route {
 	        throw new \InvalidArgumentException('URL ERROR');
         }
     }
-	
-	protected function runAction() {
+
+    /**
+     * @return mixed
+     * @throws \Exception
+     */
+    protected function runAction() {
 	    $this->runFilter();
 		$action = $this->action['uses'];
 		// 排除一个的方法
@@ -136,17 +140,11 @@ class Route {
 			return call_user_func($action);
 		}
 		if (strpos($action, '@') === false) {
-			return $this->runDefault($action);
+			return $this->invokeAutoAction($action);
 		}
-		return $this->runClassAndAction($action);
+		return $this->invokeRegisterAction($action);
 	}
 
-	protected function runClassWithConstruct($action) {
-		if (class_exists($action)) {
-			return new $action;
-		}
-		return $this->runDefault($action);
-	}
 
     /**
      * @param $response
@@ -169,10 +167,10 @@ class Route {
      * @return mixed
      * @throws \Exception
      */
-	protected function runClassAndAction($arg) {
+	protected function invokeRegisterAction($arg) {
 		list($class, $action) = explode('@', $arg);
 		if (!class_exists($class)) {
-			return $this->runController('Service\\'.APP_MODULE.'\\'.$class, $action);
+			return $this->invokeController('Service\\'.APP_MODULE.'\\'.$class, $action);
 		}
 		$reflectionClass = new \ReflectionClass( $class );
 		$method = $reflectionClass->getMethod($action);
@@ -186,11 +184,13 @@ class Route {
 	}
 
     /**
+     *
+     * 执行自动解析的方法
      * @param $path
      * @return mixed
      * @throws \Exception
      */
-    protected function runDefault($path) {
+    protected function invokeAutoAction($path) {
         $modules = Config::modules();
         foreach ($modules as $key => $module) {
             if (!$this->isMatch($path, $key)) {
@@ -198,14 +198,14 @@ class Route {
             }
             // 要记录当前模块所对应的路径
             Url::setModulePath($key);
-            return $this->runModule(Str::firstReplace($path, $key), $module);
+            return $this->invokeModule(Str::firstReplace($path, $key), $module);
         }
         // 默认模块
         if (array_key_exists('default', $modules)) {
-            return $this->runModule($path, $modules['default']);
+            return $this->invokeModule($path, $modules['default']);
         }
-        list($class, $action) = $this->getClassAndAction($path);
-        return $this->runController('Service\\'.APP_MODULE.'\\'.$class, $action);
+        list($class, $action) = $this->getClassAndAction($path, 'Service\\'.APP_MODULE);
+        return $this->invokeClass($class, $action);
     }
 
     protected function isMatch($path, $module) {
@@ -229,21 +229,26 @@ class Route {
     }
 
     /**
+     * 执行已注册模块
      * @param $path
      * @param $module
      * @return mixed
      * @throws \Exception
      */
-    protected function runModule($path, $module) {
+    protected function invokeModule($path, $module) {
 	    $module = $this->getRealModule($module);
         $module = new $module();
         if (!$module instanceof Module) {
-            return $this->runClass($module, $path);
+            return $this->invokeClass($module, $path);
         }
-        list($class, $action) = $this->getClassAndAction($path);
         Factory::view()->setDirectory($module->getViewPath());
-        $class = $module->getControllerNamespace().'\\'.$class;
-        return $this->runController($class, $action);
+        // 允许模块内部进行自定义路由解析
+        if (method_exists($module, 'invokeRoute')) {
+            return $module->invokeRoute($path);
+        }
+        $baseName = $module->getControllerNamespace();
+        list($class, $action) = $this->getClassAndAction($path, $baseName);
+        return $this->invokeClass($class, $action);
     }
 
     /**
@@ -252,21 +257,24 @@ class Route {
      * @return mixed
      * @throws \Exception
      */
-    protected function runController($class, $action) {
-	    $class .= APP_CONTROLLER;
+    protected function invokeController($class, $action) {
+        if (!Str::endWith($class, APP_CONTROLLER)) {
+            $class .= APP_CONTROLLER;
+        }
         if (!class_exists($class)) {
             throw new \InvalidArgumentException($class.' CLASS NOT EXISTS!');
         }
-        return $this->runClass($class, $action);
+        return $this->invokeClass($class, $action);
     }
 
     /**
+     * 执行控制器，进行初始化并执行方法
      * @param $instance
      * @param $action
      * @return mixed
      * @throws \Exception
      */
-    protected function runClass($instance, $action) {
+    protected function invokeClass($instance, $action) {
 	    if (is_string($instance)) {
 	        $instance = new $instance;
         }
@@ -279,18 +287,25 @@ class Route {
         throw new \Exception('UNKNOWN CLASS');
     }
 
-    protected function getClassAndAction($path) {
+    protected function getClassAndAction($path, $baseName) {
+        $baseName = rtrim($baseName, '\\').'\\';
         $path = trim($path, '/');
         if (empty($path)) {
-            return ['Home', 'index'];
+            return [$baseName.'Home'.APP_CONTROLLER, 'index'];
         }
         $args = array_map(function ($arg) {
             return Str::studly($arg);
         }, explode('/', $path));
-        if (count($args) == 1) {
-            return [ucfirst($path), 'index'];
+        if (count($args) > 1) {
+            $action = array_pop($args);
+            return [$baseName.implode('\\', $args). APP_CONTROLLER, lcfirst($action)];
         }
-        $action = array_pop($args);
-        return [implode('\\', $args), lcfirst($action)];
+        $name = $args[0];
+        $className = $baseName.$name.APP_CONTROLLER;
+        // 增加第一级判断
+        if (class_exists($className)) {
+            return [$className, 'index'];
+        }
+        return [$baseName.'Home'.APP_CONTROLLER, $name];
     }
 }
