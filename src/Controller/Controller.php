@@ -125,7 +125,7 @@ abstract class Controller extends BaseController {
                 }
             }
         }
-        if (array_key_exists('*', $rules)) {
+        if (isset($rules['*'])) {
             return $this->processFilter($rules['*']);
         }
         return true;
@@ -148,7 +148,7 @@ abstract class Controller extends BaseController {
         }
         foreach ((array)$role as $item) {
             if (true !== ($arg =
-                    $this->processOneFilter($item))) {
+                    $this->processRule($item))) {
                 return $arg;
             }
         }
@@ -161,7 +161,7 @@ abstract class Controller extends BaseController {
      * @return true|Response
      * @throws \Exception
      */
-    private function processOneFilter($role) {
+    protected function processRule($role) {
         if ($role === '*') {
             return true;
         }
