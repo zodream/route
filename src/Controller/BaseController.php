@@ -46,7 +46,7 @@ abstract class BaseController extends Action {
      * @throws \Exception
      */
 	public function runMethod($action, array $vars = array()) {
-        Factory::timer()->record('controllerStart');
+        Factory::timer()->record('controller start');
 		$this->action = $action;
 		if (!$this->hasMethod($action)) {
 			return $this->throwErrorMethod($action);
@@ -62,7 +62,7 @@ abstract class BaseController extends Action {
 		EventManger::getInstance()->run('runController', $vars);
 		$result = $this->runActionMethod($this->getActionName($action), $vars);
 		$this->finalize();
-        Factory::timer()->record('controllerEnd');
+        Factory::timer()->record('controller end');
 		return $result;
 	}
 

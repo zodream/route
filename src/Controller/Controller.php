@@ -210,6 +210,7 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function show($name = null, $data = array()) {
+        Factory::timer()->record('view render');
         return $this->showContent($this->renderHtml($name, $data));
     }
 
