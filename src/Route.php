@@ -5,7 +5,6 @@ namespace Zodream\Route;
  * 单个路由
  * @author Jason
  */
-use Zodream\Domain\Filter\DataFilter;
 use Zodream\Helpers\Str;
 use Zodream\Service\Config;
 use Zodream\Route\Controller\Module;
@@ -123,9 +122,9 @@ class Route {
 	}
 
 	protected function runFilter() {
-	    if (!DataFilter::validate(Request::get(), $this->rules)) {
-	        throw new \InvalidArgumentException('URL ERROR');
-        }
+//	    if (!DataFilter::validate(Request::get(), $this->rules)) {
+//	        throw new \InvalidArgumentException('URL ERROR');
+//        }
     }
 
     /**
