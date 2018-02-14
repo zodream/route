@@ -240,6 +240,7 @@ class Route {
         if (!$module instanceof Module) {
             return $this->invokeClass($module, $path);
         }
+        $module->boot();
         Factory::view()->setDirectory($module->getViewPath());
         // 允许模块内部进行自定义路由解析
         if (method_exists($module, 'invokeRoute')) {
