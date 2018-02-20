@@ -13,6 +13,7 @@ use Zodream\Helpers\Arr;
 use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Http\Response;
 use Zodream\Service\Routing\Url;
+use Exception;
 
 class Route {
 
@@ -284,7 +285,7 @@ class Route {
         if (method_exists($instance, 'runMethod')) {
             return call_user_func(array($instance, 'runMethod'), $action, $this->action['param']);
         }
-        throw new \Exception('UNKNOWN CLASS');
+        throw new Exception('UNKNOWN CLASS');
     }
 
     protected function getClassAndAction($path, $baseName) {
@@ -296,16 +297,38 @@ class Route {
         $args = array_map(function ($arg) {
             return Str::studly($arg);
         }, explode('/', $path));
-        if (count($args) > 1) {
-            $action = array_pop($args);
-            return [$baseName.implode('\\', $args). APP_CONTROLLER, lcfirst($action)];
+        return $this->getControllerAndAction($args, $baseName);
+    }
+
+    protected function getControllerAndAction(array $paths, $baseName) {
+//        1.匹配全路径作为控制器 index 为方法,
+        $class = $baseName.implode('\\', $paths). APP_CONTROLLER;
+        if (class_exists($class)) {
+            return [$class, 'index'];
         }
-        $name = $args[0];
-        $className = $baseName.$name.APP_CONTROLLER;
-        // 增加第一级判断
-        if (class_exists($className)) {
-            return [$className, 'index'];
+//        2.匹配最后一个作为 方法
+        $count = count($paths);
+        if ($count > 1) {
+            $action = array_pop($paths);
+            $class = $baseName.implode('\\', $paths). APP_CONTROLLER;
+            if (class_exists($class)) {
+                return [$class, lcfirst($action)];
+            }
         }
-        return [$baseName.'Home'.APP_CONTROLLER, $name];
+//        3.匹配作为文件夹
+        $class = $baseName.implode('\\', $paths).'\\HOME'. APP_CONTROLLER;
+        if (class_exists($class)) {
+            return [$class, 'index'];
+        }
+//        4.一个时匹配 home 控制器 作为方法
+        if ($count == 1) {
+            return [$baseName.'Home'.APP_CONTROLLER, lcfirst($paths[0])];
+        }
+        $action = array_pop($paths);
+        $class = $baseName.implode('\\', $paths). '\\HOME'. APP_CONTROLLER;
+        if (class_exists($class)) {
+            return [$class, lcfirst($action)];
+        }
+        throw new Exception('UNKNOWN URI');
     }
 }
