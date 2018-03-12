@@ -59,7 +59,6 @@ abstract class BaseController extends Action {
 			return $this->runClassMethod($action);
 		}
 		$this->prepare();
-		EventManger::getInstance()->run('runController', $vars);
 		$result = $this->runActionMethod($this->getActionName($action), $vars);
 		$this->finalize();
         Factory::timer()->record('controller end');

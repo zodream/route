@@ -7,6 +7,7 @@ namespace Zodream\Route;
 * @author Jason
 */
 use Zodream\Helpers\Str;
+use Zodream\Infrastructure\Http\Response;
 use Zodream\Service\Config;
 use Zodream\Http\Uri;
 use Zodream\Service\Routing\Url;
@@ -164,5 +165,17 @@ class Router {
 	public function match($methods, $uri, $action = null) {
 		return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
 	}
+
+    /**
+     * 转化响应
+     * @param mixed $response
+     * @return Response
+     */
+	public static function toResponse($response) {
+        if ($response instanceof Response) {
+            return $response;
+        }
+        return new Response($response);
+    }
 	
 }

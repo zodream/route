@@ -152,13 +152,10 @@ class Route {
      * @throws \Exception
      */
 	protected function parseResponse($response) {
-		if ($response instanceof Response) {
-			return $response;
-		}
-		if (empty($response) || is_bool($response)) {
+        if (empty($response) || is_bool($response)) {
             return Factory::response();
         }
-		return new Response($response);
+        return Router::toResponse($response);
 	}
 
     /**
