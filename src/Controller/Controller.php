@@ -165,6 +165,10 @@ abstract class Controller extends BaseController {
         if ($role === '*') {
             return true;
         }
+        // 添加命令行过滤
+        if ($role === 'cli') {
+            return Request::isCli() ?: $this->redirectWithMessage('/', '您不能直接访问此页面！', 4,'400');
+        }
         if ($role === '?') {
             return Auth::guest() ?: $this->redirect('/');
         }
