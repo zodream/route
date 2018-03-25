@@ -313,7 +313,7 @@ class Route {
             }
         }
 //        3.匹配作为文件夹
-        $class = $baseName.implode('\\', $paths).'\\HOME'. APP_CONTROLLER;
+        $class = $baseName.implode('\\', $paths).'\\Home'. APP_CONTROLLER;
         if (class_exists($class)) {
             return [$class, 'index'];
         }
@@ -322,7 +322,7 @@ class Route {
             return [$baseName.'Home'.APP_CONTROLLER, lcfirst($paths[0])];
         }
         $action = array_pop($paths);
-        $class = $baseName.implode('\\', $paths). '\\HOME'. APP_CONTROLLER;
+        $class = $baseName.implode('\\', $paths). '\\Home'. APP_CONTROLLER;
         if (class_exists($class)) {
             return [$class, lcfirst($action)];
         }
