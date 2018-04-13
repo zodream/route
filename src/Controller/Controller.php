@@ -173,7 +173,7 @@ abstract class Controller extends BaseController {
             return Auth::guest() ?: $this->redirect('/');
         }
         if ($role === '@') {
-            return $this->checkUser() ?: $this->redirect([Config::auth('home'), 'redirect_uri' => Url::to()]);
+            return $this->checkUser() ?: $this->redirectWithAuth();
         }
         if ($role === 'p' || $role === 'post') {
             return Request::isPost() ?: $this->redirectWithMessage('/', '您不能直接访问此页面！', 4,'400');
@@ -272,6 +272,15 @@ abstract class Controller extends BaseController {
      */
     public function redirectWithMessage($url, $message, $time = 4, $status = 404) {
         return $this->redirect($url, $time);
+    }
+
+    /**
+     * 重定向到登录界面
+     * @return Response
+     * @throws \Exception
+     */
+    public function redirectWithAuth() {
+        return $this->redirect([Config::auth('home'), 'redirect_uri' => Url::to()]);
     }
 
     /**
