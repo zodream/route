@@ -24,6 +24,8 @@ abstract class Controller extends BaseController {
 
     protected $canCache;
 
+    public $layout;
+
     /**
      * AUTO CSRF
      * @var bool
@@ -101,7 +103,7 @@ abstract class Controller extends BaseController {
             return $cache;
         }
         $this->send('updateCache', true);
-        EventManger::getInstance()->add('showView', function ($content) use ($key) {
+        Factory::event()->listen('showView', function ($content) use ($key) {
             Factory::cache()->set($key, $content, 12 * 3600);
         });
         return false;
@@ -192,6 +194,11 @@ abstract class Controller extends BaseController {
         return !Auth::guest();
     }
 
+
+    public function getView() {
+        return Factory::view();
+    }
+
     /**
      * 传递数据
      *
@@ -201,7 +208,7 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function send($key, $value = null) {
-        Factory::view()->set($key, $value);
+        $this->getView()->set($key, $value);
         return $this;
     }
 
@@ -224,15 +231,28 @@ abstract class Controller extends BaseController {
      * @param array $data
      * @return string
      * @throws \Exception
-     * @throws \Zodream\Disk\FileException
      */
     protected function renderHtml($name = null, $data = []) {
         if (is_array($name)) {
             $data = $name;
             $name = null;
         }
-        return Factory::view()
-            ->render($this->getViewFile($name), $data);
+        return $this->renderFile($this->getViewFile($name), $data);
+    }
+
+    public function renderFile($file, $data) {
+        return $this->getView()->render($file, $data);
+    }
+
+
+    public function findLayoutFile() {
+        if (empty($this->layout)) {
+            return false;
+        }
+        if (strpos($this->layout, '/') === 0) {
+            return $this->layout;
+        }
+        return 'layouts/'.$this->layout;
     }
 
     /**
@@ -258,6 +278,10 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function showContent($html) {
+        $layoutFile = $this->findLayoutFile();
+        if ($layoutFile !== false) {
+            return $this->getView()->render($layoutFile, ['content' => $html]);
+        }
         return Factory::response()->html($html);
     }
 
