@@ -42,7 +42,9 @@ abstract class RestController extends BaseController  {
         if (in_array(Request::method(), $rules[$action])) {
             return true;
         }
-        return $this->jsonFailure('ERROE REQUEST METHOD!');
+        return $this->jsonFailure(
+            __('ERROE REQUEST METHOD!')
+        );
     }
 
     /**

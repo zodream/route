@@ -53,7 +53,9 @@ abstract class Controller extends BaseController {
         if ($this->canCSRFValidate
             && Request::isPost()
             && !VerifyCsrfToken::verify()) {
-            throw new \HttpRequestException('BAD POST REQUEST!');
+            throw new \HttpRequestException(
+                __('BAD POST REQUEST!')
+            );
         }
         if ($this->canCSRFValidate
             && Request::isGet()) {
@@ -169,7 +171,10 @@ abstract class Controller extends BaseController {
         }
         // 添加命令行过滤
         if ($role === 'cli') {
-            return Request::isCli() ?: $this->redirectWithMessage('/', '您不能直接访问此页面！', 4,'400');
+            return Request::isCli() ?:
+                $this->redirectWithMessage('/',
+                    __('The page need cli！')
+                    , 4,'400');
         }
         if ($role === '?') {
             return Auth::guest() ?: $this->redirect('/');
@@ -178,10 +183,14 @@ abstract class Controller extends BaseController {
             return $this->checkUser() ?: $this->redirectWithAuth();
         }
         if ($role === 'p' || $role === 'post') {
-            return Request::isPost() ?: $this->redirectWithMessage('/', '您不能直接访问此页面！', 4,'400');
+            return Request::isPost() ?: $this->redirectWithMessage('/',
+                __('The page need post！')
+                , 4,'400');
         }
         if ($role === '!') {
-            return $this->redirectWithMessage('/', '您访问的页面暂未开放！', 4, '413');
+            return $this->redirectWithMessage('/',
+                __('The page not found！')
+                , 4, '413');
         }
         return true;
     }

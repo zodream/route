@@ -35,7 +35,8 @@ abstract class BaseController extends Action {
      * @throws Exception
      */
 	public function throwErrorMethod($action) {
-        throw new Exception(sprintf('%s Method Error!', $action));
+        throw new Exception(sprintf(
+            __('%s method error!'), $action));
     }
 
     /**
@@ -85,11 +86,13 @@ abstract class BaseController extends Action {
 			return call_user_func($class);
 		}
 		if (!class_exists($class)) {
-			throw new Exception($action. ' CANNOT RUN CLASS!');
+			throw new Exception($action.
+            __(' not found class!'));
 		}
 		$instance = new $class;
 		if (!$instance instanceof Action) {
-			throw new Exception($action. ' IS NOT ACTION!');
+			throw new Exception($action.
+            __(' is not instanceof Action!'));
 		}
 		$instance->init();
 		$instance->prepare();
@@ -139,7 +142,8 @@ abstract class BaseController extends Action {
                 $arguments[] = $param->getDefaultValue();
                 continue;
             }
-            throw new Exception(sprintf('%s ACTION`S %s DOES NOT HAVE VALUE!', $action, $name));
+            throw new Exception(sprintf(
+                __('%s ACTION`S %s DOES NOT HAVE VALUE!'), $action, $name));
         }
         return $arguments;
     }

@@ -222,7 +222,8 @@ class Route {
 	    if (class_exists($module)) {
 	        return $module;
         }
-        throw new \Exception($module.' Module NO EXIST!');
+        throw new Exception($module.
+            __(' Module no exist!'));
     }
 
     /**
@@ -260,7 +261,8 @@ class Route {
             $class .= APP_CONTROLLER;
         }
         if (!class_exists($class)) {
-            throw new \InvalidArgumentException($class.' CLASS NOT EXISTS!');
+            throw new Exception($class.
+                __(' class no exist!'));
         }
         return $this->invokeClass($class, $action);
     }
@@ -282,7 +284,9 @@ class Route {
         if (method_exists($instance, 'runMethod')) {
             return call_user_func(array($instance, 'runMethod'), $action, $this->action['param']);
         }
-        throw new Exception('UNKNOWN CLASS');
+        throw new Exception(
+            __('UNKNOWN CLASS')
+        );
     }
 
     protected function getClassAndAction($path, $baseName) {
@@ -326,6 +330,8 @@ class Route {
         if (class_exists($class)) {
             return [$class, lcfirst($action)];
         }
-        throw new Exception('UNKNOWN URI');
+        throw new Exception(
+            __('UNKNOWN URI')
+        );
     }
 }
