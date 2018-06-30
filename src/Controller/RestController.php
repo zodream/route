@@ -6,23 +6,14 @@ namespace Zodream\Route\Controller;
  * Date: 2016/11/28
  * Time: 18:22
  */
-use Zodream\Infrastructure\Http\Response;
-use Zodream\Infrastructure\Traits\JsonResponseTrait;
-use Zodream\Service\Factory;
+use Zodream\Route\Controller\Concerns\RestTrait;
 use Zodream\Infrastructure\Http\Request;
 
 abstract class RestController extends BaseController  {
 
-    use JsonResponseTrait;
+    use RestTrait;
 
     protected $canCSRFValidate = false;
-
-    /**
-     * @return string
-     */
-    protected function format() {
-        return 'json';
-    }
 
     protected function rules() {
         return [
@@ -39,29 +30,44 @@ abstract class RestController extends BaseController  {
         if (!array_key_exists($action, $rules)) {
             return true;
         }
-        if (in_array(Request::method(), $rules[$action])) {
-            return true;
+        if (!$this->verifySign()) {
+            return $this->renderFailure(
+                __('ERROR SIGN')
+            );
         }
-        return $this->jsonFailure(
-            __('ERROE REQUEST METHOD!')
-        );
+        if (!in_array(Request::method(), $rules[$action])) {
+            return $this->renderFailure(
+                __('ERROR REQUEST METHOD!')
+            );
+        }
+        if (!$this->verifyEtag()) {
+            return $this->renderFailure(
+                __('precondition failed')
+                , 412, 412);
+        }
+        if (!$this->verifyDate()) {
+            return $this->renderFailure(
+                __('date is expired!')
+            );
+        }
+        return true;
     }
 
     /**
-     * @param array $data
-     * @param int $statusCode
-     * @return Response
-     * @throws \Exception
+     * 验证请求时间是过期
+     * @return bool
      */
-    protected function json($data, $statusCode = 200) {
-        Factory::response()->setStatusCode($statusCode);
-        switch (strtolower($this->format())) {
-            case 'xml':
-                return Factory::response()->xml($data);
-            case 'jsonp':
-                return Factory::response()->jsonp($data);
-            default:
-                return Factory::response()->json($data);
-        }
+    protected function verifyDate() {
+        $date = Request::header('Date');
+        return strtotime($date) > time() - 120;
     }
+
+    protected function verifyEtag() {
+        return Request::header('Etag') == Request::header('If-Match');
+    }
+
+    protected function verifySign() {
+        return true;
+    }
+
 }

@@ -7,10 +7,9 @@ namespace Zodream\Route\Controller;
  * @time 2015-12-19
  */
 use Zodream\Html\VerifyCsrfToken;
-use Zodream\Infrastructure\Event\EventManger;
 use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Http\Response;
-use Zodream\Infrastructure\Traits\JsonResponseTrait;
+use Zodream\Route\Controller\Concerns\JsonResponseTrait;
 use Zodream\Service\Config;
 use Zodream\Service\Factory;
 use Zodream\Infrastructure\Loader;

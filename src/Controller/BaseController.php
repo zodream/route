@@ -11,6 +11,7 @@ use Zodream\Service\Factory;
 use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Event\EventManger;
 use Zodream\Infrastructure\Http\Response;
+use ReflectionParameter;
 
 abstract class BaseController extends Action {
 	
@@ -130,12 +131,12 @@ abstract class BaseController extends Action {
         foreach ($parameters as $param) {
             $name = $param->getName();
             if (array_key_exists($name, $vars)) {
-                $arguments[] = $vars[$name];
+                $arguments[] = $this->parseParameter($vars[$name], $param);
                 continue;
             }
             $value = $this->setActionArguments($name);
             if (!is_null($value)){
-                $arguments[] = $value;
+                $arguments[] = $this->parseParameter($value, $param);
                 continue;
             }
             if ($param->isDefaultValueAvailable()) {
@@ -146,6 +147,22 @@ abstract class BaseController extends Action {
                 __('%s ACTION`S %s DOES NOT HAVE VALUE!'), $action, $name));
         }
         return $arguments;
+    }
+
+    /**
+     * 转化值
+     * @param $value
+     * @param ReflectionParameter $parameter
+     * @return int
+     */
+    protected function parseParameter($value, ReflectionParameter $parameter) {
+	    if (!$parameter->hasType()) {
+	        return $value;
+        }
+        if ($parameter->getType() == 'int') {
+	        return intval($value);
+        }
+        return $value;
     }
 
     /**
