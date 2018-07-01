@@ -16,6 +16,16 @@ use ReflectionParameter;
 abstract class BaseController extends Action {
 	
 	protected $action = 'index';
+
+
+    /**
+     * @param string $action
+     * @return BaseController
+     */
+    public function setAction($action) {
+        $this->action = $action;
+        return $this;
+    }
 	
 	protected function actions() {
 		return [];
@@ -66,6 +76,21 @@ abstract class BaseController extends Action {
         Factory::timer()->record('controller end');
 		return $result;
 	}
+
+    /**
+     * 直接执行请保证正确
+     * @param $action
+     * @param array $vars
+     * @return mixed
+     */
+	public function runMethodNotProcess($action, array $vars = []) {
+        $this->action = $action;
+        $result = call_user_func_array(
+            [$this, $this->getActionName($action)],
+            $vars
+        );
+        return $result;
+    }
 
     /**
      * 获取
