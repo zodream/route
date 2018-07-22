@@ -12,7 +12,7 @@ use Zodream\Service\Factory;
 trait RestTrait {
 
     protected function format() {
-        $accept = Request::header('ACCEPT');
+        $accept = app('request')->header('ACCEPT');
         if (empty($accept)) {
             return 'json';
         }
@@ -37,7 +37,7 @@ trait RestTrait {
         if ($data instanceof ArrayAble) {
             $data = $data->toArray();
         }
-        $envelope = Request::get('envelope') === 'true';
+        $envelope = app('request')->get('envelope') === 'true';
         if ($envelope) {
             return $this->renderEnvelope($data, $statusCode, $headers);
         }

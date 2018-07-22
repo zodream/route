@@ -7,7 +7,6 @@ namespace Zodream\Route\Controller;
  * @time 2015-12-19
  */
 use Zodream\Html\VerifyCsrfToken;
-use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Http\Response;
 use Zodream\Route\Controller\Concerns\JsonResponseTrait;
 use Zodream\Service\Config;
@@ -15,7 +14,7 @@ use Zodream\Service\Factory;
 use Zodream\Infrastructure\Loader;
 use Zodream\Domain\Access\Auth;
 use Zodream\Infrastructure\Traits\LoaderTrait;
-use Zodream\Service\Routing\Url;
+use Zodream\Infrastructure\Http\URL;
 
 abstract class Controller extends BaseController {
 	
@@ -48,19 +47,19 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      * @throws \HttpRequestException
      */
-    public function runMethod($action, array $vars = array()) {
+    public function invokeMethod($action, array $vars = array()) {
         if ($this->canCSRFValidate
-            && Request::isPost()
+            && app('request')->isPost()
             && !VerifyCsrfToken::verify()) {
             throw new \HttpRequestException(
                 __('BAD POST REQUEST!')
             );
         }
         if ($this->canCSRFValidate
-            && Request::isGet()) {
+            && app('request')->isGet()) {
             VerifyCsrfToken::create();
         }
-        return parent::runMethod($action, $vars);
+        return parent::invokeMethod($action, $vars);
     }
 
     /**
@@ -71,7 +70,7 @@ abstract class Controller extends BaseController {
      */
     protected function runActionMethod($action, $vars = array()) {
         $arguments = $this->getActionArguments($action, $vars);
-        if ($this->canCache && Request::isGet() &&
+        if ($this->canCache && app('request')->isGet() &&
             (($cache = $this->runCache(get_called_class().
                     $this->action.serialize($arguments))) !== false)) {
             return $this->showContent($cache);
@@ -89,7 +88,7 @@ abstract class Controller extends BaseController {
         if (DEBUG) {
             return false;
         }
-        $update = Request::get('cache', false);
+        $update = app('request')->get('cache', false);
         if (!Auth::guest() && empty($update)) {
             return false;
         }
@@ -170,7 +169,7 @@ abstract class Controller extends BaseController {
         }
         // 添加命令行过滤
         if ($role === 'cli') {
-            return Request::isCli() ?:
+            return app('request')->isCli() ?:
                 $this->redirectWithMessage('/',
                     __('The page need cli！')
                     , 4,'400');
@@ -182,7 +181,7 @@ abstract class Controller extends BaseController {
             return $this->checkUser() ?: $this->redirectWithAuth();
         }
         if ($role === 'p' || $role === 'post') {
-            return Request::isPost() ?: $this->redirectWithMessage('/',
+            return app('request')->isPost() ?: $this->redirectWithMessage('/',
                 __('The page need post！')
                 , 4,'400');
         }
@@ -273,7 +272,7 @@ abstract class Controller extends BaseController {
             $name = $this->action;
         }
         if (strpos($name, '/') !== 0) {
-            $pattern = '.*?Service.'.APP_MODULE.'(.+)'.APP_CONTROLLER;
+            $pattern = '.*?Service.'.app('app.module').'(.+)'.config('app.controller');
             $name = preg_replace('/^'.$pattern.'$/', '$1', get_called_class()).'/'.$name;
         }
         return $name;
@@ -312,7 +311,7 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function redirectWithAuth() {
-        return $this->redirect([Config::auth('home'), 'redirect_uri' => Url::to()]);
+        return $this->redirect([Config::auth('home'), 'redirect_uri' => URL::to()]);
     }
 
     /**
@@ -324,7 +323,7 @@ abstract class Controller extends BaseController {
      */
     public function redirect($url, $time = 0) {
         return Factory::response()
-            ->redirect(Url::to($url), $time);
+            ->redirect(URL::to($url), $time);
     }
 
     /**
@@ -332,7 +331,7 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function goHome() {
-        return $this->redirect(Url::getRoot());
+        return $this->redirect(URL::getRoot());
     }
 
     /**
@@ -340,6 +339,6 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function goBack() {
-        return $this->redirect(Url::referrer());
+        return $this->redirect(app('request')->referrer());
     }
 }

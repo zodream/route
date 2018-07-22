@@ -1,8 +1,6 @@
 <?php
 namespace Zodream\Route\Controller;
 
-use Zodream\Infrastructure\Http\Request;
-
 abstract class ModuleController extends Controller {
 
     /**
@@ -13,7 +11,7 @@ abstract class ModuleController extends Controller {
 
 
     protected function getActionName($action) {
-        if (Request::expectsJson()) {
+        if (app('request')->expectsJson()) {
             return $this->getAjaxActionName($action);
         }
         return parent::getActionName($action);
@@ -34,7 +32,7 @@ abstract class ModuleController extends Controller {
             $name = $this->action;
         }
         if (strpos($name, '/') !== 0) {
-            $pattern = '.*?Service.(.+)'.APP_CONTROLLER;
+            $pattern = '.*?Service.(.+)'.config('app.controller');
             $name = preg_replace('/^'.$pattern.'$/', '$1', get_called_class()).'/'.$name;
         }
         return $name;

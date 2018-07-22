@@ -35,7 +35,7 @@ abstract class RestController extends BaseController  {
                 __('ERROR SIGN')
             );
         }
-        if (!in_array(Request::method(), $rules[$action])) {
+        if (!in_array(app('request')->method(), $rules[$action])) {
             return $this->renderFailure(
                 __('ERROR REQUEST METHOD!')
             );
@@ -58,12 +58,12 @@ abstract class RestController extends BaseController  {
      * @return bool
      */
     protected function verifyDate() {
-        $date = Request::header('Date');
+        $date = app('request')->header('Date');
         return strtotime($date) > time() - 120;
     }
 
     protected function verifyEtag() {
-        return Request::header('Etag') == Request::header('If-Match');
+        return app('request')->header('Etag') == app('request')->header('If-Match');
     }
 
     protected function verifySign() {

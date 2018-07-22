@@ -8,8 +8,6 @@ namespace Zodream\Route\Controller;
  */
 use Exception;
 use Zodream\Service\Factory;
-use Zodream\Infrastructure\Http\Request;
-use Zodream\Infrastructure\Event\EventManger;
 use Zodream\Infrastructure\Http\Response;
 use ReflectionParameter;
 
@@ -57,7 +55,7 @@ abstract class BaseController extends Action {
      * @return string|Response
      * @throws \Exception
      */
-	public function runMethod($action, array $vars = array()) {
+	public function invokeMethod($action, array $vars = array()) {
         Factory::timer()->record('controller start');
 		$this->action = $action;
 		if (!$this->hasMethod($action)) {
@@ -98,7 +96,7 @@ abstract class BaseController extends Action {
      * @return string
      */
 	protected function getActionName($action) {
-	    return $action.APP_ACTION;
+	    return $action.config('app.action');
     }
 
     /**
@@ -160,6 +158,7 @@ abstract class BaseController extends Action {
                 continue;
             }
             $value = $this->setActionArguments($name);
+
             if (!is_null($value)){
                 $arguments[] = $this->parseParameter($value, $param);
                 continue;
@@ -195,8 +194,8 @@ abstract class BaseController extends Action {
      * @param $name
      * @return array|string  返回null时取默认值
      */
-    protected function setActionArguments($name) {
-        return Request::get($name);
+    protected function setActionArguments(string $name) {
+        return app('request')->get($name);
     }
 
     /**
@@ -215,7 +214,7 @@ abstract class BaseController extends Action {
 		if (is_string($controller)) {
 			$controller = new $controller;
 		}
-		return $controller->runMethod($actionName, $parameters);
+		return $controller->invokeMethod($actionName, $parameters);
 	}
 	
 	/**
@@ -225,7 +224,7 @@ abstract class BaseController extends Action {
 	 */
 	public function hasMethod($action) {
 		return array_key_exists($action, $this->actions())
-        || method_exists($this, $action.APP_ACTION);
+        || method_exists($this, $action.config('app.action'));
 	}
 
 

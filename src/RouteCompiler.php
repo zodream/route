@@ -26,10 +26,10 @@ class RouteCompiler {
         $routes = [];
         foreach ($methods as $method) {
             $name = $method->getName();
-            if (!empty(APP_ACTION) && !Str::endWith($name, APP_ACTION)) {
+            if (!empty(config('app.action')) && !Str::endWith($name, config('app.action'))) {
                 continue;
             }
-            $path = Str::lastReplace($name, APP_ACTION);
+            $path = Str::lastReplace($name, config('app.action'));
             $parameters = [];
             foreach ($method->getParameters() as $parameter) {
                 $parameters[] = $this->parseParameter($parameter);
@@ -93,11 +93,11 @@ class RouteCompiler {
                 return;
             }
             $name = $file->getNameWithoutExtension();
-            if ($name == APP_CONTROLLER) {
+            if ($name == config('app.controller')) {
                 return;
             }
             $class = $baseName.$name;
-            $path = Str::lastReplace($name, APP_CONTROLLER);
+            $path = Str::lastReplace($name, config('app.controller'));
             $path = Str::unStudly($path, ' ');
             if ($path == 'home') {
                 $args = $this->getAction(trim($basePath, '/'), $class);
@@ -133,8 +133,8 @@ class RouteCompiler {
     }
 
     public function getDefaultRoute() {
-        $root = Factory::root()->directory('Service/'.APP_MODULE);
-        return $this->getRoute($root, '', 'Service\\'.APP_MODULE.'\\');
+        $root = Factory::root()->directory('Service/'.app('app.module'));
+        return $this->getRoute($root, '', 'Service\\'.app('app.module').'\\');
     }
 
     public function getAllRoute() {
@@ -143,7 +143,7 @@ class RouteCompiler {
         foreach ($modules as $key => $module) {
             $routes = array_merge($routes, $this->getModuleRoute($key, $module));
         }
-        if (!in_array('default', $modules) && !empty(APP_MODULE)) {
+        if (!in_array('default', $modules) && !empty(app('app.module'))) {
             $routes = array_merge($routes, $this->getDefaultRoute());
         }
         return $routes;
