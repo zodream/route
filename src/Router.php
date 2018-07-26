@@ -13,14 +13,54 @@ use ReflectionClass;
 use Zodream\Infrastructure\Http\URL;
 
 class Router {
+
+    const PREFIX = 'prefix';
+    const PACKAGE = 'namespace';
+    const BEFORE = 'before';
+    const AFTER = 'after';
+
+    /**
+     * @var array
+     */
+    protected $globalFilters = [];
+    /**
+     * @var
+     */
+    protected $globalRoutePrefix;
+
+    protected $globalRoutePackage;
     /**
      * @var Route[]
      */
     protected $staticRouteMap = [];
 
-    public function group(array $args, Closure $closure): Router {
-        $closure($this);
+    public function group(array $filters, Closure $callback): Router {
+        $oldGlobalFilters = $this->globalFilters;
+        $oldGlobalPrefix = $this->globalRoutePrefix;
+        $oldGlobalPackage = $this->globalRoutePackage;
+        $this->globalFilters = array_merge_recursive($this->globalFilters,
+            array_intersect_key($filters,
+                [
+                    self::AFTER => 1,
+                    self::BEFORE => 1
+                ]));
+        $newPrefix = isset($filters[self::PREFIX]) ? trim($filters[self::PREFIX], '/') : null;
+        $newPackage = isset($filters[self::PACKAGE]) ? trim($filters[self::PACKAGE], '\\') : null;
+        $this->globalRoutePrefix = $this->addPrefix($newPrefix);
+        $this->globalRoutePackage = $this->addPackage($newPackage);
+        $callback($this);
+        $this->globalFilters = $oldGlobalFilters;
+        $this->globalRoutePrefix = $oldGlobalPrefix;
+        $this->globalRoutePackage = $oldGlobalPackage;
         return $this;
+    }
+
+    protected function addPrefix(string $route): string {
+        return trim(trim($this->globalRoutePrefix, '/') . '/' . $route, '/');
+    }
+
+    protected function addPackage(string $package): string {
+        return trim(trim($this->globalRoutePackage, '\\') . '\\' . $package, '\\');
     }
 
     /**
@@ -30,10 +70,14 @@ class Router {
      * @param $action
      * @return Route
      */
-    public function addRoute(array $method, $uri, $action): Route {
+    public function addRoute(array $method, string $uri, $action): Route {
+        if (is_string($action)) {
+            $action = $this->addPackage($action);
+        }
+        $uri = $this->addPrefix($uri);
         $route = new Route($uri, is_callable($action) ? $action : function() use ($action) {
             return $this->makeResponse($action);
-        }, $method);
+        }, $method, $this->globalFilters);
         foreach ($route->getMethods() as $item) {
             $this->staticRouteMap[$item][$uri] = $route;
         }
@@ -52,7 +96,7 @@ class Router {
      * @return Route
      */
     public function post($uri, $action = null) {
-        return $this->addRoute('POST', $uri, $action);
+        return $this->addRoute(['POST'], $uri, $action);
     }
 
     /**
@@ -63,7 +107,7 @@ class Router {
      * @return Route
      */
     public function put($uri, $action = null) {
-        return $this->addRoute('PUT', $uri, $action);
+        return $this->addRoute(['PUT'], $uri, $action);
     }
 
     /**
@@ -74,7 +118,7 @@ class Router {
      * @return Route
      */
     public function patch($uri, $action = null) {
-        return $this->addRoute('PATCH', $uri, $action);
+        return $this->addRoute(['PATCH'], $uri, $action);
     }
 
     /**
@@ -85,7 +129,7 @@ class Router {
      * @return Route
      */
     public function delete($uri, $action = null) {
-        return $this->addRoute('DELETE', $uri, $action);
+        return $this->addRoute(['DELETE'], $uri, $action);
     }
 
     /**
@@ -96,7 +140,7 @@ class Router {
      * @return Route
      */
     public function options($uri, $action = null) {
-        return $this->addRoute('OPTIONS', $uri, $action);
+        return $this->addRoute(['OPTIONS'], $uri, $action);
     }
 
     /**
@@ -107,8 +151,7 @@ class Router {
      * @return Route
      */
     public function any($uri, $action = null) {
-        $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'];
-        return $this->addRoute($verbs, $uri, $action);
+        return $this->addRoute(Route::HTTP_METHODS, $uri, $action);
     }
 
     /**
