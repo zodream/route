@@ -89,7 +89,7 @@ abstract class Controller extends BaseController {
             return false;
         }
         $update = app('request')->get('cache', false);
-        if (!Auth::guest() && empty($update)) {
+        if (!auth()->guest() && empty($update)) {
             return false;
         }
         if (empty($key)) {
@@ -175,7 +175,7 @@ abstract class Controller extends BaseController {
                     , 4,'400');
         }
         if ($role === '?') {
-            return Auth::guest() ?: $this->redirect('/');
+            return auth()->guest() ?: $this->redirect('/');
         }
         if ($role === '@') {
             return $this->checkUser() ?: $this->redirectWithAuth();
@@ -198,7 +198,7 @@ abstract class Controller extends BaseController {
      * @return bool
      */
     protected function checkUser() {
-        return !Auth::guest();
+        return !auth()->guest();
     }
 
 
