@@ -12,9 +12,8 @@ use Zodream\Route\Controller\Concerns\JsonResponseTrait;
 use Zodream\Service\Config;
 use Zodream\Service\Factory;
 use Zodream\Infrastructure\Loader;
-use Zodream\Domain\Access\Auth;
 use Zodream\Infrastructure\Traits\LoaderTrait;
-use Zodream\Infrastructure\Http\URL;
+
 
 abstract class Controller extends BaseController {
 	
@@ -311,7 +310,7 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function redirectWithAuth() {
-        return $this->redirect([Config::auth('home'), 'redirect_uri' => URL::to()]);
+        return $this->redirect([Config::auth('home'), 'redirect_uri' => url()->current()]);
     }
 
     /**
@@ -323,7 +322,7 @@ abstract class Controller extends BaseController {
      */
     public function redirect($url, $time = 0) {
         return Factory::response()
-            ->redirect(URL::to($url), $time);
+            ->redirect(url()->to($url), $time);
     }
 
     /**
@@ -331,7 +330,7 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function goHome() {
-        return $this->redirect(URL::getRoot());
+        return $this->redirect(url()->getRoot());
     }
 
     /**

@@ -10,7 +10,6 @@ use Zodream\Infrastructure\Http\Response;
 use Exception;
 use Zodream\Route\Controller\Module;
 use ReflectionClass;
-use Zodream\Infrastructure\Http\URL;
 
 class Router {
 
@@ -241,7 +240,7 @@ class Router {
                 continue;
             }
             // 要记录当前模块所对应的路径
-            URL::setModulePath($key);
+            url()->setModulePath($key);
             return $this->invokeModule(Str::firstReplace($path, $key), $module);
         }
         // 默认模块
