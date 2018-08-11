@@ -25,7 +25,7 @@ abstract class RestController extends BaseController  {
         ];
     }
 
-    protected function beforeFilter($action) {
+    public function canInvoke($action) {
         $rules = $this->rules();
         if (!array_key_exists($action, $rules)) {
             return true;

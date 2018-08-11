@@ -9,6 +9,7 @@ namespace Zodream\Route\Controller;
 use Zodream\Html\VerifyCsrfToken;
 use Zodream\Infrastructure\Http\Response;
 use Zodream\Route\Controller\Concerns\JsonResponseTrait;
+use Zodream\Route\Controller\Concerns\RuleTrait;
 use Zodream\Service\Config;
 use Zodream\Service\Factory;
 use Zodream\Infrastructure\Loader;
@@ -17,7 +18,7 @@ use Zodream\Infrastructure\Traits\LoaderTrait;
 
 abstract class Controller extends BaseController {
 	
-	use LoaderTrait, JsonResponseTrait;
+	use LoaderTrait, JsonResponseTrait, RuleTrait;
 
     protected $canCache;
 
@@ -108,89 +109,9 @@ abstract class Controller extends BaseController {
         return false;
     }
 
-    /**
-     * 在执行之前做规则验证
-     * @param string $action 方法名
-     * @return boolean|Response
-     */
-    protected function beforeFilter($action) {
-        $rules = $this->rules();
-        foreach ($rules as $key => $item) {
-            if ($action === $key) {
-                return $this->processFilter($item);
-            }
-            if (is_integer($key) && is_array($item)) {
-                $key = (array)array_shift($item);
-                if (in_array($action, $key)) {
-                    return $this->processFilter($item);
-                }
-            }
-        }
-        if (isset($rules['*'])) {
-            return $this->processFilter($rules['*']);
-        }
-        return true;
-    }
 
-    /**
-     * @param string|callable $role
-     * @return bool|Response
-     * @throws \Exception
-     */
-    private function processFilter($role) {
-        if (is_callable($role)) {
-            return call_user_func($role);
-        }
-        if (empty($role)) {
-            return true;
-        }
-        if (is_string($role)) {
-            $role = explode(',', $role);
-        }
-        foreach ((array)$role as $item) {
-            if (true !== ($arg =
-                    $this->processRule($item))) {
-                return $arg;
-            }
-        }
-        return true;
-    }
 
-    /**
-     * VALIDATE ONE FILTER
-     * @param string $role
-     * @return true|Response
-     * @throws \Exception
-     */
-    protected function processRule($role) {
-        if ($role === '*') {
-            return true;
-        }
-        // 添加命令行过滤
-        if ($role === 'cli') {
-            return app('request')->isCli() ?:
-                $this->redirectWithMessage('/',
-                    __('The page need cli！')
-                    , 4,'400');
-        }
-        if ($role === '?') {
-            return auth()->guest() ?: $this->redirect('/');
-        }
-        if ($role === '@') {
-            return $this->checkUser() ?: $this->redirectWithAuth();
-        }
-        if ($role === 'p' || $role === 'post') {
-            return app('request')->isPost() ?: $this->redirectWithMessage('/',
-                __('The page need post！')
-                , 4,'400');
-        }
-        if ($role === '!') {
-            return $this->redirectWithMessage('/',
-                __('The page not found！')
-                , 4, '413');
-        }
-        return true;
-    }
+
 
     /**
      * 验证用户

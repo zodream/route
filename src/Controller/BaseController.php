@@ -29,13 +29,6 @@ abstract class BaseController extends Action {
 		return [];
 	}
 
-	/**
-	 * 此方法主要是为了继承并附加规则
-	 * @return array
-	 */
-	protected function rules() {
-		return [];
-	}
 
     /**
      * 方法未找到
@@ -62,7 +55,7 @@ abstract class BaseController extends Action {
 			return $this->throwErrorMethod($action);
 		}
 		if (true !==
-            ($arg = $this->beforeFilter($action))) {
+            ($arg = $this->canInvoke($action))) {
 			return $arg;
 		}
 		if (array_key_exists($action, $this->actions())) {
@@ -234,6 +227,6 @@ abstract class BaseController extends Action {
      * @param $action
      * @return boolean|Response
      */
-    abstract protected function beforeFilter($action);
+    abstract public function canInvoke($action);
 
 }
