@@ -35,7 +35,7 @@ abstract class Controller extends BaseController {
 		if (is_bool($this->canCache)) {
 			$this->canCache = Config::cache('auto', false);
 		}
-		if (is_bool($this->canCSRFValidate)) {
+		if (!is_bool($this->canCSRFValidate)) {
 			$this->canCSRFValidate = Config::safe('csrf', false);
 		}
 	}
@@ -60,6 +60,61 @@ abstract class Controller extends BaseController {
             VerifyCsrfToken::create();
         }
         return parent::invokeMethod($action, $vars);
+    }
+
+    /**
+     * 判断是否可以执行
+     * @param string $action
+     * @return bool
+     * @throws \Exception
+     */
+    public function canInvoke($action) {
+        return $this->checkRules($action);
+    }
+
+    /**
+     * VALIDATE ONE FILTER
+     * @param string $role
+     * @return true|Response
+     * @throws \Exception
+     */
+    protected function processRule($role) {
+        if ($role === '*') {
+            return true;
+        }
+        // 添加命令行过滤
+        if ($role === 'cli') {
+            return app('request')->isCli() ?:
+                $this->redirectWithMessage('/',
+                    __('The page need cli！')
+                    , 4,'400');
+        }
+        if ($role === '?') {
+            return auth()->guest() ?: $this->redirect('/');
+        }
+        if ($role === '@') {
+            return $this->checkUser() ?: $this->redirectWithAuth();
+        }
+        if ($role === 'p' || $role === 'post') {
+            return app('request')->isPost() ?: $this->redirectWithMessage('/',
+                __('The page need post！')
+                , 4,'400');
+        }
+        if ($role === '!') {
+            return $this->redirectWithMessage('/',
+                __('The page not found！')
+                , 4, '413');
+        }
+        return $this->processCustomRule($role);
+    }
+
+    /**
+     * 自定义判断规则
+     * @param $role
+     * @return bool
+     */
+    protected function processCustomRule($role) {
+        return true;
     }
 
     /**

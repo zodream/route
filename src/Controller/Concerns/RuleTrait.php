@@ -2,6 +2,8 @@
 namespace Zodream\Route\Controller\Concerns;
 
 
+use Zodream\Infrastructure\Http\Response;
+
 trait RuleTrait {
 
     /**
@@ -12,12 +14,9 @@ trait RuleTrait {
         return [];
     }
 
-    /**
-     * 判断是否可以执行
-     * @param string $action
-     * @return bool
-     */
-    public function canInvoke($action) {
+
+
+    protected function checkRules($action) {
         $rules = $this->rules();
         foreach ($rules as $key => $item) {
             if ($action === $key) {
@@ -60,48 +59,5 @@ trait RuleTrait {
         return true;
     }
 
-    /**
-     * VALIDATE ONE FILTER
-     * @param string $role
-     * @return true|Response
-     * @throws \Exception
-     */
-    protected function processRule($role) {
-        if ($role === '*') {
-            return true;
-        }
-        // 添加命令行过滤
-        if ($role === 'cli') {
-            return app('request')->isCli() ?:
-                $this->redirectWithMessage('/',
-                    __('The page need cli！')
-                    , 4,'400');
-        }
-        if ($role === '?') {
-            return auth()->guest() ?: $this->redirect('/');
-        }
-        if ($role === '@') {
-            return $this->checkUser() ?: $this->redirectWithAuth();
-        }
-        if ($role === 'p' || $role === 'post') {
-            return app('request')->isPost() ?: $this->redirectWithMessage('/',
-                __('The page need post！')
-                , 4,'400');
-        }
-        if ($role === '!') {
-            return $this->redirectWithMessage('/',
-                __('The page not found！')
-                , 4, '413');
-        }
-        return $this->processCustomRule($role);
-    }
 
-    /**
-     * 自定义判断规则
-     * @param $role
-     * @return bool
-     */
-    protected function processCustomRule($role) {
-        return true;
-    }
 }

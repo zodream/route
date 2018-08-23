@@ -6,24 +6,16 @@ namespace Zodream\Route\Controller;
  * Date: 2016/11/28
  * Time: 18:22
  */
+use Zodream\Route\Controller\Concerns\CheckMethodTrait;
+use Zodream\Route\Controller\Concerns\RestAuthTrait;
 use Zodream\Route\Controller\Concerns\RestTrait;
-use Zodream\Infrastructure\Http\Request;
+use Zodream\Route\Controller\Concerns\RuleTrait;
 
 abstract class RestController extends BaseController  {
 
-    use RestTrait;
+    use RestTrait, CheckMethodTrait, RestAuthTrait, RuleTrait;
 
     protected $canCSRFValidate = false;
-
-    protected function rules() {
-        return [
-            'index' => ['GET', 'HEAD'],
-            'view' => ['GET', 'HEAD'],
-            'create' => ['POST'],
-            'update' => ['PUT', 'PATCH'],
-            'delete' => ['DELETE'],
-        ];
-    }
 
     public function canInvoke($action) {
         $rules = $this->rules();
@@ -35,9 +27,9 @@ abstract class RestController extends BaseController  {
                 __('ERROR SIGN')
             );
         }
-        if (!in_array(app('request')->method(), $rules[$action])) {
+        if (!$this->checkMethod($action)) {
             return $this->renderFailure(
-                __('ERROR REQUEST METHOD!')
+                __('ERROR REQUEST METHOD!'), 405, 405
             );
         }
         if (!$this->verifyEtag()) {
@@ -50,7 +42,7 @@ abstract class RestController extends BaseController  {
                 __('date is expired!')
             );
         }
-        return true;
+        return $this->checkRules($action);
     }
 
     /**
@@ -63,10 +55,43 @@ abstract class RestController extends BaseController  {
     }
 
     protected function verifyEtag() {
-        return app('request')->header('Etag') == app('request')->header('If-Match');
+        return app('request')->header('Etag')
+            == app('request')->header('If-Match');
     }
 
     protected function verifySign() {
+        return true;
+    }
+
+    /**
+     * VALIDATE ONE FILTER
+     * @param string $role
+     * @return true|Response
+     * @throws \Exception
+     */
+    protected function processRule($role) {
+        if ($role === '*') {
+            return true;
+        }
+        if ($role === '?') {
+            return auth()->guest() ?: $this->renderFailure(__('Please Under Guest!'));
+        }
+        if ($role === '@') {
+            return !auth()->guest() ?:
+                $this->renderFailure(__('Please Login User!'), 401, 401);
+        }
+        if ($role === '!') {
+            return $this->renderFailure(__('The page not found！'), 404, 404);
+        }
+        return $this->processCustomRule($role);
+    }
+
+    /**
+     * 自定义判断规则
+     * @param $role
+     * @return bool
+     */
+    protected function processCustomRule($role) {
         return true;
     }
 
