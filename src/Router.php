@@ -167,6 +167,7 @@ class Router {
 
 
     public function handle(string $method, $url): Route {
+        timer('match route');
         if ($url instanceof Uri) {
             $url = $url->getPath();
         }
@@ -177,6 +178,7 @@ class Router {
             foreach ($this->staticRouteMap[$method] as $item) {
                 /** @var $item Route */
                 if ($item->match($url)) {
+                    timer('match route end');
                     return $item;
                 }
             }
@@ -192,6 +194,7 @@ class Router {
      * @throws Exception
      */
     protected function makeResponse(string $action): Response {
+        timer('route response');
         $response = strpos($action, '@') === false
             ?  $this->invokeAutoAction($action)
             : $this->invokeRegisterAction($action);
@@ -325,6 +328,7 @@ class Router {
      * @throws \Exception
      */
     protected function invokeClass($instance, $action) {
+        timer('controller response');
         if (is_string($instance)) {
             $instance = new $instance;
         }
