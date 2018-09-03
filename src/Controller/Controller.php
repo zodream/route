@@ -261,7 +261,8 @@ abstract class Controller extends BaseController {
      */
     public function showContent($html) {
         $layoutFile = $this->findLayoutFile();
-        if ($layoutFile !== false) {
+        if ($layoutFile !== false
+            && !app('request')->isPjax()) {
             return $this->getView()->render($layoutFile, ['content' => $html]);
         }
         return Factory::response()->html($html);
