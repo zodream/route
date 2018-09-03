@@ -202,9 +202,30 @@ abstract class Controller extends BaseController {
      * @return Response
      * @throws \Exception
      */
-    public function show($name = null, $data = array()) {
+    public function show($name = null, $data = []) {
         Factory::timer()->record('view render');
         return $this->showContent($this->renderHtml($name, $data));
+    }
+
+    /**
+     * 根据 pjax 自定义数据
+     * @param null $name
+     * @param null $data
+     * @param null $layout_callback
+     * @return Response
+     * @throws \Exception
+     */
+    public function renderIfPjax($name = null, $data = null, $layout_callback = null) {
+        if (is_array($name)) {
+            list($data, $layout_callback, $name) = [$name, $data, null];
+        }
+        if (empty($data)) {
+            $data = [];
+        }
+        if (!app('request')->isPjax() && is_callable($layout_callback)) {
+            $data = array_merge($data, call_user_func($layout_callback));
+        }
+        return $this->show($name, $data);
     }
 
     /**
