@@ -295,8 +295,9 @@ class Router {
         $module->boot();
         view()->setDirectory($module->getViewPath());
         // 允许模块内部进行自定义路由解析
-        if (method_exists($module, 'invokeRoute')) {
-            return $module->invokeRoute($path);
+        if (method_exists($module, 'invokeRoute')
+            && ($response = $module->invokeRoute($path))) {
+            return $response;
         }
         $baseName = $module->getControllerNamespace();
         list($class, $action) = $this->getClassAndAction($path, $baseName);
@@ -306,10 +307,11 @@ class Router {
     /**
      * @param $class
      * @param $action
-     * @return mixed
-     * @throws \Exception
+     * @param array $vars
+     * @return Response|mixed
+     * @throws Exception
      */
-    protected function invokeController($class, $action) {
+    public function invokeController($class, $action, $vars = []) {
         if (!Str::endWith($class, config('app.controller'))) {
             $class .= config('app.controller');
         }
@@ -317,17 +319,18 @@ class Router {
             throw new Exception($class.
                 __(' class no exist!'));
         }
-        return $this->invokeClass($class, $action);
+        return $this->invokeClass($class, $action, $vars);
     }
 
     /**
      * 执行控制器，进行初始化并执行方法
      * @param $instance
      * @param $action
-     * @return mixed
-     * @throws \Exception
+     * @param array $vars
+     * @return Response|mixed
+     * @throws Exception
      */
-    protected function invokeClass($instance, $action) {
+    protected function invokeClass($instance, $action, $vars = []) {
         timer('controller response');
         if (is_string($instance)) {
             $instance = new $instance;
@@ -336,7 +339,7 @@ class Router {
             $instance->init();
         }
         if (method_exists($instance, 'invokeMethod')) {
-            return call_user_func(array($instance, 'invokeMethod'), $action, []);
+            return call_user_func(array($instance, 'invokeMethod'), $action, $vars);
         }
         throw new Exception(
             __('UNKNOWN CLASS')

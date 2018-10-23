@@ -10,6 +10,8 @@ namespace Zodream\Route\Controller;
  */
 use Zodream\Database\Migrations\Migration;
 use Zodream\Disk\Directory;
+use Zodream\Infrastructure\Http\Response;
+use Zodream\Route\Router;
 
 abstract class Module extends Action {
 
@@ -90,6 +92,19 @@ abstract class Module extends Action {
      */
     public function getMigration() {
         return;
+    }
+
+    /**
+     * 执行控制器的指定方法
+     * @param $class
+     * @param $action
+     * @param array $vars
+     * @return Response
+     * @throws \Exception
+     */
+    public function invokeController($class, $action, $vars = []) {
+        return app(Router::class)
+            ->invokeController($class, $action, $vars);
     }
 
 }
