@@ -286,7 +286,7 @@ class Router {
      * @return mixed
      * @throws \Exception
      */
-    protected function invokeModule($path, $module) {
+    public function invokeModule($path, $module) {
         $module = $this->getRealModule($module);
         $module = new $module();
         if (!$module instanceof Module) {

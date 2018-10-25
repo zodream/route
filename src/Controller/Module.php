@@ -107,4 +107,15 @@ abstract class Module extends Action {
             ->invokeController($class, $action, $vars);
     }
 
+    /**
+     * @param $module
+     * @param $path
+     * @return mixed
+     * @throws \Exception
+     */
+    public function invokeModule($module, $path) {
+        return app(Router::class)
+            ->invokeModule($path, $module);
+    }
+
 }
