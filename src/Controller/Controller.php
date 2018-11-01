@@ -165,12 +165,10 @@ abstract class Controller extends BaseController {
     }
 
 
-
-
-
     /**
      * 验证用户
      * @return bool
+     * @throws \Exception
      */
     protected function checkUser() {
         return !auth()->guest();
@@ -262,6 +260,7 @@ abstract class Controller extends BaseController {
      * 获取视图文件路径
      * @param string $name
      * @return string
+     * @throws \Exception
      */
     protected function getViewFile($name = null) {
         if (is_null($name)) {
@@ -307,7 +306,7 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function redirectWithAuth() {
-        return $this->redirect([Config::auth('home'), 'redirect_uri' => url()->current()]);
+        return $this->redirect([Config::auth('home'), 'redirect_uri' => url()->full()]);
     }
 
     /**
