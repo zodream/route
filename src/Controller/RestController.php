@@ -6,6 +6,7 @@ namespace Zodream\Route\Controller;
  * Date: 2016/11/28
  * Time: 18:22
  */
+use Zodream\Infrastructure\Http\Response;
 use Zodream\Route\Controller\Concerns\CheckMethodTrait;
 use Zodream\Route\Controller\Concerns\RestAuthTrait;
 use Zodream\Route\Controller\Concerns\RestTrait;
@@ -17,11 +18,12 @@ abstract class RestController extends BaseController  {
 
     protected $canCSRFValidate = false;
 
+    /**
+     * @param $action
+     * @return bool|Response
+     * @throws \Exception
+     */
     public function canInvoke($action) {
-        $rules = $this->rules();
-        if (!array_key_exists($action, $rules)) {
-            return true;
-        }
         if (!$this->verifySign()) {
             return $this->renderFailure(
                 __('ERROR SIGN')
@@ -48,12 +50,17 @@ abstract class RestController extends BaseController  {
     /**
      * 验证请求时间是过期
      * @return bool
+     * @throws \Exception
      */
     protected function verifyDate() {
         $date = app('request')->header('Date');
-        return strtotime($date) > time() - 120;
+        return empty($date) || strtotime($date) > time() - 120;
     }
 
+    /**
+     * @return bool
+     * @throws \Exception
+     */
     protected function verifyEtag() {
         return app('request')->header('Etag')
             == app('request')->header('If-Match');

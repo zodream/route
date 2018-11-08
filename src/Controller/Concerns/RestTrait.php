@@ -3,6 +3,7 @@ namespace Zodream\Route\Controller\Concerns;
 
 
 use Zodream\Helpers\Str;
+use Zodream\Helpers\Xml;
 use Zodream\Html\Page;
 use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Http\Response;
@@ -54,12 +55,19 @@ trait RestTrait {
     protected function renderEncode($data) {
         switch (strtolower($this->format())) {
             case 'xml':
-                return Factory::response()->xml($data);
+                return Factory::response()->xml($this->formatXml($data));
             case 'jsonp':
                 return Factory::response()->jsonp($data);
             default:
                 return Factory::response()->json($data);
         }
+    }
+
+    protected function formatXml($data) {
+        if (!is_array($data)) {
+            return $data;
+        }
+        return Xml::specialEncode($data);
     }
 
     /**
@@ -116,14 +124,7 @@ trait RestTrait {
      * @throws \Exception
      */
     public function renderPage(Page $page) {
-        return $this->render([
-            'paging' => [
-                'limit' => $page->getPageSize(),
-                'offset' => $page->getIndex(),
-                'total' => $page->getTotal()
-            ],
-            'data' => $page->getPage()
-        ]);
+        return $this->render($page->toArray());
     }
 
 }
