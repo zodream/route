@@ -2,10 +2,10 @@
 namespace Zodream\Route\Controller\Concerns;
 
 
+use Zodream\Helpers\Arr;
 use Zodream\Helpers\Str;
 use Zodream\Helpers\Xml;
 use Zodream\Html\Page;
-use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Http\Response;
 use Zodream\Infrastructure\Interfaces\ArrayAble;
 use Zodream\Service\Factory;
@@ -35,9 +35,7 @@ trait RestTrait {
      * @throws \Exception
      */
     public function render($data, $statusCode = 200, $headers = []) {
-        if ($data instanceof ArrayAble) {
-            $data = $data->toArray();
-        }
+        $data = Arr::toArray($data);
         $envelope = app('request')->get('envelope') === 'true';
         if ($envelope) {
             return $this->renderEnvelope($data, $statusCode, $headers);
@@ -66,6 +64,11 @@ trait RestTrait {
     protected function formatXml($data) {
         if (!is_array($data)) {
             return $data;
+        }
+        $count = count(array_filter(array_keys($data), 'is_numeric'));
+        // 数字不能作为xml的标签
+        if ($count > 0) {
+            $data = compact('data');
         }
         return Xml::specialEncode($data);
     }
