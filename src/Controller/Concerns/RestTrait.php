@@ -4,34 +4,21 @@ namespace Zodream\Route\Controller\Concerns;
 
 use Zodream\Helpers\Arr;
 use Zodream\Helpers\Str;
-use Zodream\Helpers\Xml;
 use Zodream\Html\Page;
-use Zodream\Infrastructure\Http\Response;
-use Zodream\Infrastructure\Interfaces\ArrayAble;
+use Zodream\Infrastructure\Http\Output\RestResponse;
 use Zodream\Service\Factory;
 
 trait RestTrait {
 
     protected function format() {
-        $accept = app('request')->header('ACCEPT');
-        if (empty($accept)) {
-            return 'json';
-        }
-        $args = explode(';', $accept);
-        if (Str::contains($args[0], ['/jsonp', '+jsonp'])) {
-            return 'jsonp';
-        }
-        if (Str::contains($args[0], ['/xml', '+xml'])) {
-            return 'xml';
-        }
-        return 'json';
+        return RestResponse::formatType();
     }
 
     /**
      * @param array $data
      * @param int $statusCode
      * @param array $headers
-     * @return Response
+     * @return RestResponse
      * @throws \Exception
      */
     public function render($data, $statusCode = 200, $headers = []) {
@@ -47,37 +34,18 @@ trait RestTrait {
 
     /**
      * @param $data
-     * @return Response
+     * @return RestResponse
      * @throws \Exception
      */
     protected function renderEncode($data) {
-        switch (strtolower($this->format())) {
-            case 'xml':
-                return Factory::response()->xml($this->formatXml($data));
-            case 'jsonp':
-                return Factory::response()->jsonp($data);
-            default:
-                return Factory::response()->json($data);
-        }
-    }
-
-    protected function formatXml($data) {
-        if (!is_array($data)) {
-            return $data;
-        }
-        $count = count(array_filter(array_keys($data), 'is_numeric'));
-        // 数字不能作为xml的标签
-        if ($count > 0) {
-            $data = compact('data');
-        }
-        return Xml::specialEncode($data);
+        return RestResponse::create($data, $this->format());
     }
 
     /**
      * @param $data
      * @param int $status
      * @param array $headers
-     * @return Response
+     * @return RestResponse
      * @throws \Exception
      */
     protected function renderEnvelope($data, $status = 200, $headers = []) {
@@ -98,7 +66,7 @@ trait RestTrait {
      * @param int $statusCode
      * @param array $errors
      * @param string $description
-     * @return Response
+     * @return RestResponse
      * @throws \Exception
      */
     public function renderFailure($message = '', $code = 10000, $statusCode = 400, $errors = [], $description = '') {
@@ -123,7 +91,7 @@ trait RestTrait {
 
     /**
      * @param Page $page
-     * @return Response
+     * @return RestResponse
      * @throws \Exception
      */
     public function renderPage(Page $page) {
