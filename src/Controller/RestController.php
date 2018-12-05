@@ -24,6 +24,9 @@ abstract class RestController extends BaseController  {
      * @throws \Exception
      */
     public function canInvoke($action) {
+        if (app('request')->isPreFlight()) {
+            return $this->checkCorsMethod($action);
+        }
         if (!$this->verifySign()) {
             return $this->renderFailure(
                 __('ERROR SIGN')
@@ -68,6 +71,26 @@ abstract class RestController extends BaseController  {
 
     protected function verifySign() {
         return true;
+    }
+
+    protected function checkCorsMethod($action) {
+        $methods = $this->methods();
+        if (!isset($methods[$action])) {
+            return $this->responseAllowCors();
+        }
+        $method = app('request')->header('Access-Control-Request-Method');
+        if (in_array($method, $methods[$action])) {
+            return $this->responseAllowCors();
+        }
+        return $this->responseDisallowCors();
+    }
+
+    protected function responseAllowCors() {
+        return app('response')->allowCors();
+    }
+
+    protected function responseDisallowCors() {
+        return $this->renderFailure('Disallow Method');
     }
 
     /**
