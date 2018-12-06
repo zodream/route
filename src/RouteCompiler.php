@@ -1,6 +1,7 @@
 <?php
 namespace Zodream\Route;
 
+use function foo\func;
 use Zodream\Disk\Directory;
 use Zodream\Disk\File;
 use Zodream\Disk\FileObject;
@@ -25,35 +26,67 @@ class RouteCompiler {
         $methods = $func->getMethods(ReflectionMethod::IS_PUBLIC);
         $routes = [];
         foreach ($methods as $method) {
-            $name = $method->getName();
-            if (!empty(config('app.action')) && !Str::endWith($name, config('app.action'))) {
+            $action = $this->parseMethod($method);
+            if ($action === false) {
                 continue;
             }
-            $path = Str::lastReplace($name, config('app.action'));
-            $parameters = [];
-            foreach ($method->getParameters() as $parameter) {
-                $parameters[] = $this->parseParameter($parameter);
-            }
-            $action = [
-                'class' => $controller,
-                'method' => $name,
-                'parameters' => $parameters
-            ];
+            $action['controller'] = $controller;
+            $path = $action['path'];
             if ($path == 'index') {
                 $routes[$basePath] = $action;
                 $routes[$basePath.'/'] = $action;
             }
             $path = Str::unStudly($path, ' ');
-            $routes[$basePath.'/'.$path] = $action;
+            $routes[$this->joinPath($basePath, $path)] = $action;
             if (strpos($path, ' ') === false) {
                 continue;
             }
             $path = str_replace(' ', '_', $path);
-            $routes[$basePath.'/'.$path] = $action;
+            $routes[$this->joinPath($basePath, $path)] = $action;
             $path = str_replace('_', '-', $path);
-            $routes[$basePath.'/'.$path] = $action;
+            $routes[$this->joinPath($basePath, $path)] = $action;
         }
         return $routes;
+    }
+
+    protected function joinPath($basePath, $path) {
+        return trim($basePath.'/'.$path, '/');
+    }
+
+    protected function parseMethod(ReflectionMethod $method) {
+        $name = $method->getName();
+        if (!empty(config('app.action')) && !Str::endWith($name, config('app.action'))) {
+            return false;
+        }
+        $path = Str::lastReplace($name, config('app.action'));
+        $parameters = [];
+        foreach ($method->getParameters() as $parameter) {
+            $parameters[] = $this->parseParameter($parameter);
+        }
+        $doc = $method->getDocComment();
+        $data = [
+            'action' => $name,
+            'path' => $path,
+            'parameters' => $parameters
+        ];
+        if (empty($doc)) {
+            return $data;
+        }
+        if (preg_match('/@method (.+)/i', $doc, $match)) {
+            $method = array_map(function ($item) {
+                return strtoupper(trim($item));
+            }, explode(',', $match[1]));
+            $data['method'] = array_filter($method, function($item) {
+               return in_array($item, Route::HTTP_METHODS);
+            });
+        }
+        if (preg_match('/@route (.+)/i', $doc, $match)) {
+            $route = trim($match[1]);
+            if (!empty($route)) {
+                $data['route'] = $route;
+            }
+        }
+        return $data;
     }
 
     protected function parseParameter(ReflectionParameter $parameter) {
@@ -140,13 +173,30 @@ class RouteCompiler {
     public function getAllRoute() {
         $routes = [];
         $modules = Config::modules();
-        foreach ($modules as $key => $module) {
-            $routes = array_merge($routes, $this->getModuleRoute($key, $module));
-        }
         if (!in_array('default', $modules) && !empty(app('app.module'))) {
             $routes = array_merge($routes, $this->getDefaultRoute());
         }
-        return $routes;
+        foreach ($modules as $key => $module) {
+            $routes = array_merge($routes, $this->getModuleRoute($key, $module));
+        }
+        return $this->formatRoute($routes);
+    }
+
+    protected function formatRoute($routes) {
+        $data = [];
+        foreach ($routes as $key => $route) {
+            $uris = [$key];
+            if (isset($route['route'])) {
+                $uris[] = $route['route'];
+            }
+            $methods = !isset($route['method']) || empty($route['method']) ? ['any'] : $route['method'];
+            foreach ($methods as $method) {
+                foreach ($uris as $uri) {
+                    $data[$method][$uri] = $route;
+                }
+            }
+        }
+        return $data;
     }
 
 }
