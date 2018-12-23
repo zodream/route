@@ -33,7 +33,7 @@ class Router {
      */
     protected $staticRouteMap = [];
 
-    public function group(array $filters, Closure $callback): Router {
+    public function group(array $filters, $callback): Router {
         $oldGlobalFilters = $this->globalFilters;
         $oldGlobalPrefix = $this->globalRoutePrefix;
         $oldGlobalPackage = $this->globalRoutePackage;
@@ -47,7 +47,7 @@ class Router {
         $newPackage = isset($filters[self::PACKAGE]) ? trim($filters[self::PACKAGE], '\\') : null;
         $this->globalRoutePrefix = $this->addPrefix($newPrefix);
         $this->globalRoutePackage = $this->addPackage($newPackage);
-        $callback($this);
+        $this->loadRoutes($callback);
         $this->globalFilters = $oldGlobalFilters;
         $this->globalRoutePrefix = $oldGlobalPrefix;
         $this->globalRoutePackage = $oldGlobalPackage;
@@ -60,6 +60,15 @@ class Router {
 
     protected function addPackage(string $package): string {
         return trim(trim($this->globalRoutePackage, '\\') . '\\' . $package, '\\');
+    }
+
+    protected function loadRoutes($routes) {
+        if ($routes instanceof Closure) {
+            $routes($this);
+        } else {
+            $router = $this;
+            require $routes;
+        }
     }
 
     /**
