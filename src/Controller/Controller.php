@@ -317,6 +317,14 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function redirect($url, $time = 0) {
+        if (app('request')->wantsJson()) {
+            return $this->json([
+                'code' => 302,
+                'status' => __('failure'),
+                'errors' => '重定向',
+                'url' => url()->to($url)
+            ]);
+        }
         return Factory::response()
             ->redirect(url()->to($url), $time);
     }
