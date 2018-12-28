@@ -197,6 +197,24 @@ class Router {
         }, [$method]);
     }
 
+    public function module($name, callable $handle = null) {
+        $modules = config('modules');
+        $newModule = false;
+        foreach ($modules as $key => $module) {
+            if ($name == $key || $module == $name) {
+                $newModule = [$key, $module];
+                break;
+            }
+        }
+        if (empty($newModule)) {
+            return false;
+        }
+        $oldGlobalModule = url()->getModulePath();
+        url()->setModulePath($newModule[0]);
+        call_user_func_array($handle, $newModule);
+        url()->setModulePath($oldGlobalModule);
+    }
+
     /**
      * @param string $action
      * @return Response
