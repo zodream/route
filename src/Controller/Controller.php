@@ -6,6 +6,7 @@ namespace Zodream\Route\Controller;
  * @author Jason
  * @time 2015-12-19
  */
+use Zodream\Helpers\Html;
 use Zodream\Html\VerifyCsrfToken;
 use Zodream\Infrastructure\Http\Response;
 use Zodream\Route\Controller\Concerns\JsonResponseTrait;
@@ -250,7 +251,8 @@ abstract class Controller extends BaseController {
         if (empty($this->layout)) {
             return false;
         }
-        if (strpos($this->layout, '/') === 0) {
+        $code = substr($this->layout, 0, 1);
+        if ($code == '/') {
             return $this->layout;
         }
         return 'layouts/'.$this->layout;
@@ -282,7 +284,10 @@ abstract class Controller extends BaseController {
     public function showContent($html) {
         $layoutFile = $this->findLayoutFile();
         if ($layoutFile !== false) {
-            return $this->getView()->render($layoutFile, ['content' => $html]);
+            $html = $this->getView()->render($layoutFile, ['content' => $html]);
+        }
+        if (!empty($html) && !app()->isDebug()) {
+            $html = Html::compress($html);
         }
         return Factory::response()->html($html);
     }
