@@ -7,6 +7,7 @@ namespace Zodream\Route\Controller;
  * @time 2015-12-19
  */
 use Exception;
+use Zodream\Route\RouteException;
 use Zodream\Service\Factory;
 use Zodream\Infrastructure\Http\Response;
 use ReflectionParameter;
@@ -37,7 +38,7 @@ abstract class BaseController extends Action {
      * @throws Exception
      */
 	public function throwErrorMethod($action) {
-        throw new Exception(sprintf(
+        throw new RouteException(sprintf(
             __('%s method error!'), $action));
     }
 
