@@ -286,9 +286,9 @@ abstract class Controller extends BaseController {
         if ($layoutFile !== false) {
             $html = $this->getView()->render($layoutFile, ['content' => $html]);
         }
-        if (!empty($html) && !app()->isDebug()) {
-            $html = Html::compress($html);
-        }
+//        if (!empty($html) && !app()->isDebug()) {
+//            $html = Html::compress($html);
+//        }
         return Factory::response()->html($html);
     }
 
