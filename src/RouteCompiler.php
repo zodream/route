@@ -162,7 +162,11 @@ class RouteCompiler {
         $func = new ReflectionClass($class);
         $file = new File($func->getFileName());
         $root = $file->getDirectory()->directory('Service');
-        return $this->getRoute($root, $path, $module.'\\Service\\');
+        return array_map(function($item) use ($module, $path) {
+            $item['module'] = $module;
+            $item['module_path'] = $path;
+            return $item;
+        }, $this->getRoute($root, $path, $module.'\\Service\\'));
     }
 
     public function getDefaultRoute() {
