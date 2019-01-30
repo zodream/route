@@ -39,7 +39,7 @@ abstract class BaseController extends Action {
      */
 	public function throwErrorMethod($action) {
         throw new RouteException(sprintf(
-            __('%s method error!'), $action));
+            __('%s::%s method error!'), get_called_class(), $action));
     }
 
     /**
