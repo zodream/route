@@ -247,7 +247,7 @@ class Route {
             }
             $path = substr($path, $length);
         }
-        $result = (bool) preg_match($regex, $path, $matches, null, (int) $basePath);
+        $result = (bool) preg_match($regex, $path, $matches, 0, (int) $basePath);
         $this->params = [];
         if ($result) {
             $params = [];

@@ -43,8 +43,8 @@ class Router {
                     self::AFTER => 1,
                     self::BEFORE => 1
                 ]));
-        $newPrefix = isset($filters[self::PREFIX]) ? trim($filters[self::PREFIX], '/') : null;
-        $newPackage = isset($filters[self::PACKAGE]) ? trim($filters[self::PACKAGE], '\\') : null;
+        $newPrefix = isset($filters[self::PREFIX]) ? trim($filters[self::PREFIX], '/') : '';
+        $newPackage = isset($filters[self::PACKAGE]) ? trim($filters[self::PACKAGE], '\\') : '';
         $this->globalRoutePrefix = $this->addPrefix($newPrefix);
         $this->globalRoutePackage = $this->addPackage($newPackage);
         $this->loadRoutes($callback);
@@ -55,10 +55,16 @@ class Router {
     }
 
     protected function addPrefix(string $route): string {
+        if (empty($this->globalRoutePrefix)) {
+            return trim($route, '/');
+        }
         return trim(trim($this->globalRoutePrefix, '/') . '/' . $route, '/');
     }
 
     protected function addPackage(string $package): string {
+        if (empty($this->globalRoutePackage)) {
+            return trim($package, '\\');
+        }
         return trim(trim($this->globalRoutePackage, '\\') . '\\' . $package, '\\');
     }
 
