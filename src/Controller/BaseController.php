@@ -16,6 +16,7 @@ abstract class BaseController extends Action {
 	
 	protected $action = 'index';
 
+    protected $middlewares = [];
 
     /**
      * @param string $action
@@ -29,6 +30,11 @@ abstract class BaseController extends Action {
 	protected function actions() {
 		return [];
 	}
+
+    public function middleware(...$middlewares) {
+        $this->middlewares = array_merge($this->middlewares, $middlewares);
+        return $this;
+    }
 
 
     /**

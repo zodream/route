@@ -243,19 +243,11 @@ abstract class Controller extends BaseController {
     }
 
     public function renderFile($file, $data) {
-        return $this->getView()->render($file, $data);
+        return $this->getView()->setLayout($this->findLayoutFile())->render($file, $data);
     }
 
-
-    public function findLayoutFile() {
-        if (empty($this->layout)) {
-            return false;
-        }
-        $code = substr($this->layout, 0, 1);
-        if ($code == '/') {
-            return $this->layout;
-        }
-        return 'layouts/'.$this->layout;
+    protected function findLayoutFile() {
+        return $this->layout;
     }
 
     /**
@@ -282,13 +274,6 @@ abstract class Controller extends BaseController {
      * @throws \Exception
      */
     public function showContent($html) {
-        $layoutFile = $this->findLayoutFile();
-        if ($layoutFile !== false) {
-            $html = $this->getView()->render($layoutFile, ['content' => $html]);
-        }
-//        if (!empty($html) && !app()->isDebug()) {
-//            $html = Html::compress($html);
-//        }
         return Factory::response()->html($html);
     }
 

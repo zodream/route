@@ -6,6 +6,7 @@ namespace Zodream\Route;
 use Exception;
 use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Http\Response;
+use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
 
 class Route {
 
@@ -46,6 +47,8 @@ class Route {
      * @var array
      */
     protected $params = [];
+
+    protected $middlewares = [];
 
     /**
      * Class constructor
@@ -90,6 +93,12 @@ class Route {
         $this->methods = array_map('strtoupper', $methods);
         return $this;
     }
+
+    public function middleware(...$middlewares) {
+        $this->middlewares = array_merge($this->middlewares, $middlewares);
+        return $this;
+    }
+
     /**
      * Get methods
      *
@@ -327,7 +336,12 @@ class Route {
     }
 
     public function handle(Request $request, Response $response) {
-        $request->append($this->params());
-        return call_user_func($this->action, $request, $response);
+        $middlewares = array_merge($this->middlewares, [function(Request $request) use ($response) {
+            $request->append($this->params());
+            return call_user_func($this->action, $request, $response);
+        }]);
+        return (new MiddlewareProcessor())
+            ->process($request, ...$middlewares);
+
     }
 }

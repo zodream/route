@@ -8,6 +8,7 @@ use Zodream\Helpers\Str;
 use Zodream\Http\Uri;
 use Zodream\Infrastructure\Http\Response;
 use Exception;
+use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
 use Zodream\Route\Controller\Module;
 use ReflectionClass;
 
@@ -15,8 +16,11 @@ class Router {
 
     const PREFIX = 'prefix';
     const PACKAGE = 'namespace';
+    const MIDDLEWARE = 'middleware';
     const BEFORE = 'before';
     const AFTER = 'after';
+
+    protected $middlewares = [];
 
     /**
      * @var array
@@ -28,6 +32,7 @@ class Router {
     protected $globalRoutePrefix;
 
     protected $globalRoutePackage;
+    protected $globalRouteMiddleware;
     /**
      * @var Route[]
      */
@@ -180,29 +185,6 @@ class Router {
         return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
     }
 
-
-    public function handle(string $method, $url): Route {
-        timer('match route');
-        if ($url instanceof Uri) {
-            $url = $url->getPath();
-        }
-        if (isset($this->staticRouteMap[$method][$url])) {
-            return $this->staticRouteMap[$method][$url];
-        }
-        if (array_key_exists($method, $this->staticRouteMap)) {
-            foreach ($this->staticRouteMap[$method] as $item) {
-                /** @var $item Route */
-                if ($item->match($url)) {
-                    timer('match route end');
-                    return $item;
-                }
-            }
-        }
-        return new Route($url, function() use ($url) {
-            return $this->makeResponse($url);
-        }, [$method]);
-    }
-
     public function module($name, callable $handle = null) {
         $modules = config('modules');
         $newModule = false;
@@ -220,6 +202,44 @@ class Router {
         call_user_func_array($handle, $newModule);
         url()->setModulePath($oldGlobalModule);
     }
+
+    public function middleware(...$middlewares) {
+        $this->middlewares = array_merge($this->middlewares, $middlewares);
+        return $this;
+    }
+
+    /**
+     * @param string $method
+     * @param string $uri
+     * @return bool|Route
+     * @throws Exception
+     */
+    public function getRoute(string $method, string $uri) {
+        timer('match route');
+        if (isset($this->staticRouteMap[$method][$uri])) {
+            return $this->staticRouteMap[$method][$uri];
+        }
+        if (array_key_exists($method, $this->staticRouteMap)) {
+            foreach ($this->staticRouteMap[$method] as $item) {
+                /** @var $item Route */
+                if ($item->match($uri)) {
+                    timer('match route end');
+                    return $item;
+                }
+            }
+        }
+        return false;
+    }
+
+    public function handle(string $method, $uri): Route {
+        if ($uri instanceof Uri) {
+            $uri = $uri->getPath();
+        }
+        return (new MiddlewareProcessor())
+            ->process(compact('method', 'uri'), ...$this->middlewares);
+    }
+
+
 
     /**
      * @param string $action
@@ -262,55 +282,7 @@ class Router {
         return call_user_func_array(array(new $class, $action), $arguments);
     }
 
-    /**
-     *
-     * 执行自动解析的方法
-     * @param $path
-     * @return mixed
-     * @throws \Exception
-     */
-    protected function invokeAutoAction($path) {
-        $modules = config('modules');
-        foreach ($modules as $key => $module) {
-            if (!$this->isMatch($path, $key)) {
-                continue;
-            }
-            // 要记录当前模块所对应的路径
-            url()->setModulePath($key);
-            return $this->invokeModule(Str::firstReplace($path, $key), $module);
-        }
-        // 默认模块
-        if (array_key_exists('default', $modules)) {
-            return $this->invokeModule($path, $modules['default']);
-        }
-        list($class, $action) = $this->getClassAndAction($path, 'Service\\'.app('app.module'));
-        if (!class_exists($class)) {
-            throw new Exception($class.
-                __(' class no exist!'));
-        }
-        return $this->invokeClass($class, $action);
-    }
 
-    protected function isMatch($path, $module) {
-        return strpos($path, $module) === 0;
-    }
-
-    /**
-     * @param $module
-     * @return string
-     * @throws \Exception
-     */
-    protected function getRealModule($module) {
-        if (class_exists($module)) {
-            return $module;
-        }
-        $module = rtrim($module, '\\').'\Module';
-        if (class_exists($module)) {
-            return $module;
-        }
-        throw new Exception($module.
-            __(' Module no exist!'));
-    }
 
     /**
      * 执行已注册模块
@@ -333,9 +305,36 @@ class Router {
             return $response;
         }
         $baseName = $module->getControllerNamespace();
+        return $this->invokePath($path, $baseName);
+    }
+
+    public function invokePath($path, $baseName) {
         list($class, $action) = $this->getClassAndAction($path, $baseName);
+        if (!class_exists($class)) {
+            throw new Exception($class.
+                __(' class no exist!'));
+        }
         return $this->invokeClass($class, $action);
     }
+
+    /**
+     * @param $module
+     * @return string
+     * @throws \Exception
+     */
+    protected function getRealModule($module) {
+        if (class_exists($module)) {
+            return $module;
+        }
+        $module = rtrim($module, '\\').'\Module';
+        if (class_exists($module)) {
+            return $module;
+        }
+        throw new Exception($module.
+            __(' Module no exist!'));
+    }
+
+
 
     /**
      * @param $class
