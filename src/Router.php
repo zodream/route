@@ -246,18 +246,18 @@ class Router {
      * @return Response
      * @throws Exception
      */
-    protected function makeResponse(string $action): Response {
-        timer('route response');
-        $response = strpos($action, '@') === false
-            ?  $this->invokeAutoAction($action)
-            : $this->invokeRegisterAction($action);
-        if (empty($response) || is_bool($response)) {
-            return app('response');
-        }
-        return $response instanceof Response ? $response
-            : app('response')->setParameter($response);
-
-    }
+//    protected function makeResponse(string $action): Response {
+//        timer('route response');
+//        $response = strpos($action, '@') === false
+//            ?  $this->invokeAutoAction($action)
+//            : $this->invokeRegisterAction($action);
+//        if (empty($response) || is_bool($response)) {
+//            return app('response');
+//        }
+//        return $response instanceof Response ? $response
+//            : app('response')->setParameter($response);
+//
+//    }
 
 
     /**
