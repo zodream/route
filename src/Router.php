@@ -185,8 +185,10 @@ class Router {
         return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
     }
 
-    public function module($name, callable $handle = null) {
-        $modules = config('modules');
+    public function module($name, callable $handle = null, array $modules = []) {
+        if (empty($modules)) {
+            $modules = config('modules');
+        }
         $newModule = false;
         foreach ($modules as $key => $module) {
             if ($name == $key || $module == $name) {
