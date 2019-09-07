@@ -294,8 +294,7 @@ class Router {
      * @throws \Exception
      */
     public function invokeModule($path, $module) {
-        $module = $this->getRealModule($module);
-        $module = new $module();
+        $module = static::moduleInstance($module);
         if (!$module instanceof Module) {
             return $this->invokeClass($module, $path);
         }
@@ -321,16 +320,16 @@ class Router {
 
     /**
      * @param $module
-     * @return string
+     * @return Module
      * @throws \Exception
      */
-    protected function getRealModule($module) {
+    public static function moduleInstance($module) {
         if (class_exists($module)) {
-            return $module;
+            return new $module();
         }
         $module = rtrim($module, '\\').'\Module';
         if (class_exists($module)) {
-            return $module;
+            return new $module();
         }
         throw new Exception($module.
             __(' Module no exist!'));
