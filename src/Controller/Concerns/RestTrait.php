@@ -15,7 +15,7 @@ trait RestTrait {
     }
 
     /**
-     * @param array $data
+     * @param array|mixed $data
      * @param int $statusCode
      * @param array $headers
      * @return RestResponse
