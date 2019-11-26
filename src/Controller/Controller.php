@@ -11,6 +11,7 @@ use Zodream\Html\VerifyCsrfToken;
 use Zodream\Infrastructure\Http\Response;
 use Zodream\Route\Controller\Concerns\JsonResponseTrait;
 use Zodream\Route\Controller\Concerns\RuleTrait;
+use Zodream\Route\Events\ViewRendered;
 use Zodream\Service\Config;
 use Zodream\Service\Factory;
 use Zodream\Infrastructure\Loader;
@@ -159,8 +160,8 @@ abstract class Controller extends BaseController {
             return $cache;
         }
         $this->send('updateCache', true);
-        Factory::event()->listen('showView', function ($content) use ($key) {
-            Factory::cache()->set($key, $content, 12 * 3600);
+        event()->listen(ViewRendered::class, function (ViewRendered $view) use ($key) {
+            cache()->set($key, $view->content, 12 * 3600);
         });
         return false;
     }
@@ -243,7 +244,11 @@ abstract class Controller extends BaseController {
     }
 
     public function renderFile($file, $data) {
-        return $this->getView()->setLayout($this->findLayoutFile())->render($file, $data);
+        $html = $this->getView()->setLayout($this->findLayoutFile())
+            ->setAttribute('controller', $this)
+            ->render($file, $data);
+        event(new ViewRendered($html));
+        return $html;
     }
 
     protected function findLayoutFile() {
