@@ -45,7 +45,7 @@ abstract class BaseController extends Action {
      */
 	public function throwErrorMethod($action) {
         throw new RouteException(sprintf(
-            __('%s::%s method error!'), get_called_class(), $action));
+            __('%s::%s method error!uri: %s'), get_called_class(), $action, app('request')->uri()));
     }
 
     /**
@@ -168,7 +168,7 @@ abstract class BaseController extends Action {
                 continue;
             }
             throw new Exception(sprintf(
-                __('%s ACTION`S %s DOES NOT HAVE VALUE!'), $action, $name));
+                __('%s ACTION`S %s DOES NOT HAVE VALUE!uri: %s'), $action, $name, app('request')->uri()));
         }
         return $arguments;
     }

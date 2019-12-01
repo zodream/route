@@ -421,7 +421,7 @@ class Router {
             return [$class, lcfirst($action)];
         }
         throw new Exception(
-            __('UNKNOWN URI')
+            sprintf(__('UNKNOWN URI: %s, Will Invoke: %s::%s'), app('request')->uri(), $class, $action)
         );
     }
 }
