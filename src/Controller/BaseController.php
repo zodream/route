@@ -153,12 +153,16 @@ abstract class BaseController extends Action {
         $arguments = array();
         foreach ($parameters as $param) {
             $name = $param->getName();
+            $typeClass = $param->getClass();
+            if ($typeClass) {
+                $arguments[] = app($typeClass->getName());
+                continue;
+            }
             if (array_key_exists($name, $vars)) {
                 $arguments[] = $this->parseParameter($vars[$name], $param);
                 continue;
             }
             $value = $this->setActionArguments($name);
-
             if (!is_null($value)){
                 $arguments[] = $this->parseParameter($value, $param);
                 continue;
