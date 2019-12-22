@@ -187,8 +187,15 @@ abstract class BaseController extends Action {
 	    if (!$parameter->hasType()) {
 	        return $value;
         }
-        if ($parameter->getType() == 'int') {
+	    $type = $parameter->getType()->getName();
+        if ($type === 'int') {
 	        return intval($value);
+        }
+        if ($type === 'float') {
+            return floatval($value);
+        }
+        if ($type === 'double') {
+            return doubleval($value);
         }
         return $value;
     }
