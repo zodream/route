@@ -199,6 +199,9 @@ class Router {
         if (empty($newModule)) {
             return false;
         }
+        if (!is_callable($handle)) {
+            return $newModule;
+        }
         $oldGlobalModule = url()->getModulePath();
         url()->setModulePath($newModule[0]);
         call_user_func_array($handle, $newModule);

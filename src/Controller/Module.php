@@ -23,6 +23,7 @@ abstract class Module extends Action {
 
     /**
      * @return Directory
+     * @throws \ReflectionException
      */
     public function getBasePath() {
         if ($this->_basePath === null) {
@@ -34,6 +35,7 @@ abstract class Module extends Action {
 
     /**
      * @return Directory.
+     * @throws \ReflectionException
      */
     public function getViewPath() {
         return $this->getBasePath()->childDirectory('UserInterface');
@@ -116,6 +118,17 @@ abstract class Module extends Action {
     public function invokeModule($module, $path) {
         return app(Router::class)
             ->invokeModule($path, $module);
+    }
+
+    public static function url($path, $extra = null, $complete = true, $rewrite = true) {
+        $url = false;
+        app(Router::class)->module(static::class, function () use (&$url, $path, $extra, $complete, $rewrite) {
+            $url = app('url')->to($path, $extra, $complete, $rewrite);
+        });
+        if ($url === false) {
+            throw new \Exception(sprintf('[%s] is uninstall', static::class));
+        }
+        return $url;
     }
 
 }
