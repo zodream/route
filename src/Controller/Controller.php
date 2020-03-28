@@ -265,7 +265,8 @@ abstract class Controller extends BaseController {
         if (is_null($name)) {
             $name = $this->action;
         }
-        if (strpos($name, '/') !== 0) {
+        $first = substr($name, 0, 1);
+        if ($first !== '@' && $first !== '/') {
             $pattern = '.*?Service.'.app('app.module').'(.+)'.config('app.controller');
             $name = preg_replace('/^'.$pattern.'$/', '$1', get_called_class()).'/'.$name;
         }
