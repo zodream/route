@@ -4,9 +4,11 @@ declare(strict_types = 1);
 namespace Zodream\Route;
 
 use Exception;
+use Zodream\Helpers\Str;
 use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Http\Response;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
+use Zodream\Route\Controller\Module;
 
 class Route {
 
@@ -335,7 +337,46 @@ class Route {
         return $path;
     }
 
+    protected function prepareHandle() {
+        if (isset($this->constraints['module_path'])) {
+            url()->setModulePath($this->constraints['module_path']);
+        }
+        if (isset($this->constraints['module'])) {
+            $moduleCls = $this->constraints['module'];
+            $module = new $moduleCls();
+            $module->boot();
+            view()->setDirectory($module->getViewPath());
+        }
+    }
+
+    protected function invokeRoute(string $cls, string $action, array $parameters) {
+        $instance = new $cls();
+        if (method_exists($instance, 'init')) {
+            $instance->init();
+        }
+        $actionName = Str::lastReplace($action, config('app.action'));
+        if (true !==
+            ($arg = $instance->canInvoke($actionName))) {
+            return $arg;
+        }
+        $instance->setAction($actionName);
+        $instance->prepare();
+        $arguments = [];
+        foreach ($parameters as $item) {
+            if ($item['type'] === 'string') {
+                $item = '';
+            }
+        }
+        $result = call_user_func_array(
+            array($this, $action),
+            $arguments
+        );
+        $instance->finalize();
+        return $result;
+    }
+
     public function handle(Request $request, Response $response) {
+        $this->prepareHandle();
         $middlewares = array_merge($this->middlewares, [function(Request $request) use ($response) {
             $request->append($this->params());
             return call_user_func($this->action, $request, $response);

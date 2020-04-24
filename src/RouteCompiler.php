@@ -31,20 +31,28 @@ class RouteCompiler {
                 continue;
             }
             $action['controller'] = $controller;
-            $path = $action['path'];
-            if ($path == 'index') {
-                $routes[$basePath] = $action;
-                $routes[$basePath.'/'] = $action;
+            foreach ((array)$action['path'] as $path) {
+                if (empty($path)) {
+                    continue;
+                }
+                if ($path == 'index') {
+                    $routes[$basePath] = $action;
+                    $routes[$basePath.'/'] = $action;
+                }
+                if (substr($path, 0, 1) === '/') {
+                    $routes[trim($path, '/')] = $action;
+                    continue;
+                }
+                $path = Str::unStudly($path, ' ');
+                $routes[$this->joinPath($basePath, $path)] = $action;
+                if (strpos($path, ' ') === false) {
+                    continue;
+                }
+                $path = str_replace(' ', '_', $path);
+                $routes[$this->joinPath($basePath, $path)] = $action;
+                $path = str_replace('_', '-', $path);
+                $routes[$this->joinPath($basePath, $path)] = $action;
             }
-            $path = Str::unStudly($path, ' ');
-            $routes[$this->joinPath($basePath, $path)] = $action;
-            if (strpos($path, ' ') === false) {
-                continue;
-            }
-            $path = str_replace(' ', '_', $path);
-            $routes[$this->joinPath($basePath, $path)] = $action;
-            $path = str_replace('_', '-', $path);
-            $routes[$this->joinPath($basePath, $path)] = $action;
         }
         return $routes;
     }
@@ -72,7 +80,7 @@ class RouteCompiler {
         if (empty($doc)) {
             return $data;
         }
-        if (preg_match('/@method (.+)/i', $doc, $match)) {
+        if (preg_match('/@method\s+(.+)/i', $doc, $match)) {
             $method = array_map(function ($item) {
                 return strtoupper(trim($item));
             }, explode(',', $match[1]));
@@ -80,11 +88,11 @@ class RouteCompiler {
                return in_array($item, Route::HTTP_METHODS);
             });
         }
-        if (preg_match('/@route (.+)/i', $doc, $match)) {
-            $route = trim($match[1]);
-            if (!empty($route)) {
-                $data['route'] = $route;
-            }
+        if (preg_match_all('/@route\s+(\S+)/i', $doc, $matches, PREG_SET_ORDER)) {
+            $data['routes'] = array_column($matches, 1);
+        }
+        if (preg_match_all('/@path\s+(\S+)/i', $doc, $matches, PREG_SET_ORDER)) {
+            $data['path'] = array_column($matches, 1);
         }
         return $data;
     }
@@ -92,7 +100,7 @@ class RouteCompiler {
     protected function parseParameter(ReflectionParameter $parameter) {
         $item = [
             'name' => $parameter->getName(),
-            'type' => $parameter->getType(),
+            'type' => $parameter->getType() ? $parameter->getType()->getName() : '',
         ];
         if ($parameter->isDefaultValueAvailable()) {
             $item['default'] = $parameter->getDefaultValue();
@@ -194,6 +202,7 @@ class RouteCompiler {
                 $uris[] = $route['route'];
             }
             $methods = !isset($route['method']) || empty($route['method']) ? ['any'] : $route['method'];
+            unset($route['path'], $route['route']);
             foreach ($methods as $method) {
                 foreach ($uris as $uri) {
                     $data[$method][$uri] = $route;
