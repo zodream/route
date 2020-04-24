@@ -95,7 +95,7 @@ class Router {
         }
         $uri = $this->addPrefix($uri);
         $route = new Route($uri, is_callable($action) ? $action : function() use ($action) {
-            return $this->makeResponse($action);
+            return $this->invokeRegisterAction($action);
         }, $method, $this->globalFilters);
         foreach ($route->getMethods() as $item) {
             $this->staticRouteMap[$item][$uri] = $route;
