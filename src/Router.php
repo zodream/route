@@ -191,7 +191,7 @@ class Router {
         }
         $newModule = false;
         foreach ($modules as $key => $module) {
-            if ($name == $key || $module == $name) {
+            if ($name === $key || strpos($name, $module) === 0) {
                 $newModule = [$key, $module];
                 break;
             }
@@ -204,8 +204,9 @@ class Router {
         }
         $oldGlobalModule = url()->getModulePath();
         url()->setModulePath($newModule[0]);
-        call_user_func_array($handle, $newModule);
+        $res = call_user_func_array($handle, $newModule);
         url()->setModulePath($oldGlobalModule);
+        return $res;
     }
 
     public function middleware(...$middlewares) {
