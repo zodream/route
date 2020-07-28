@@ -1,16 +1,20 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Route\Controller\Concerns;
 
-
 use Zodream\Helpers\Arr;
-use Zodream\Helpers\Str;
 use Zodream\Html\Page;
 use Zodream\Infrastructure\Http\Output\RestResponse;
 use Zodream\Service\Factory;
 
 trait RestTrait {
 
-    protected function format() {
+    /**
+     * 获取响应数据各式
+     * @return string
+     * @throws \Exception
+     */
+    protected function format(): string {
         return RestResponse::formatType();
     }
 
@@ -21,7 +25,7 @@ trait RestTrait {
      * @return RestResponse
      * @throws \Exception
      */
-    public function render($data, $statusCode = 200, $headers = []) {
+    public function render($data, int $statusCode = 200, array $headers = []) {
         $data = Arr::toArray($data);
         $envelope = app('request')->get('envelope') === 'true';
         if ($envelope) {
@@ -33,6 +37,7 @@ trait RestTrait {
     }
 
     /**
+     * 响应
      * @param $data
      * @return RestResponse
      * @throws \Exception
@@ -42,13 +47,14 @@ trait RestTrait {
     }
 
     /**
+     * 把响应信息插入json
      * @param $data
      * @param int $status
      * @param array $headers
      * @return RestResponse
      * @throws \Exception
      */
-    protected function renderEnvelope($data, $status = 200, $headers = []) {
+    protected function renderEnvelope($data, int $status = 200, array $headers = []) {
         $data = [
             'status' => $status,
             'response' => $data
@@ -69,7 +75,7 @@ trait RestTrait {
      * @return RestResponse
      * @throws \Exception
      */
-    public function renderFailure($message = '', $code = 10000, $statusCode = 400, $errors = [], $description = '') {
+    public function renderFailure($message = '', int $code = 10000, int $statusCode = 400, array $errors = [], string $description = '') {
         $data = is_array($message) ? $message : [
             'code' => $code,
             'message' => $message
@@ -90,12 +96,23 @@ trait RestTrait {
     }
 
     /**
+     * 响应分页数据
      * @param Page $page
      * @return RestResponse
      * @throws \Exception
      */
     public function renderPage(Page $page) {
         return $this->render($page->toArray());
+    }
+
+    /**
+     * 响应[data: object]
+     * @param mixed $data
+     * @return RestResponse
+     * @throws \Exception
+     */
+    public function renderData($data) {
+        return $this->render(compact('data'));
     }
 
 }

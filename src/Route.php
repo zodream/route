@@ -8,7 +8,6 @@ use Zodream\Helpers\Str;
 use Zodream\Infrastructure\Http\Request;
 use Zodream\Infrastructure\Http\Response;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
-use Zodream\Route\Controller\Module;
 
 class Route {
 
@@ -60,23 +59,31 @@ class Route {
      * @param array $methods
      * @param array $constraints
      * @param array $defaults
-     * @throws Exception
      */
     public function __construct(
         string $definition,
         callable $action,
         array $methods = self::HTTP_METHODS,
         array $constraints = [],
-        array $defaults = []) {;
+        array $defaults = []) {
         $this->setAction($action);
         $this->definition = $definition;
         $this->constraints = $constraints;
         $this->defaults = $defaults;
         $this->setMethods($methods);
-        $this->parts = $this->parseDefinition($definition);
+        try {
+            $this->parts = $this->parseDefinition($definition);
+        } catch (Exception $ex) {
+
+        }
         $this->regex = $this->buildRegex($this->parts, $constraints);
     }
 
+    /**
+     * @param array $config
+     * @return Route
+     * @throws Exception
+     */
     public static function factory(array $config): Route {
         if (!isset($config['definition'])) {
             throw new Exception(
@@ -206,6 +213,10 @@ class Route {
         return $this;
     }
 
+    /**
+     * 获取当前方法
+     * @return callable
+     */
     public function getAction(): callable {
         return $this->action;
     }
@@ -377,12 +388,12 @@ class Route {
 
     public function handle(Request $request, Response $response) {
         $this->prepareHandle();
-        $middlewares = array_merge($this->middlewares, [function(Request $request) use ($response) {
+        $middlewareItems = array_merge($this->middlewares, [function(Request $request) use ($response) {
             $request->append($this->params());
             return call_user_func($this->action, $request, $response);
         }]);
         return (new MiddlewareProcessor())
-            ->process($request, ...$middlewares);
+            ->process($request, ...$middlewareItems);
 
     }
 }
