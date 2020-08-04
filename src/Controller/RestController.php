@@ -108,7 +108,7 @@ abstract class RestController extends BaseController  {
         }
         if ($role === '@') {
             return !auth()->guest() ?:
-                $this->renderFailure(__('Please Login User!'), 401, 401);
+                $this->redirectWithAuth();
         }
         if ($role === '!') {
             return $this->renderFailure(__('The page not found！'), 404, 404);
