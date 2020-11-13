@@ -57,6 +57,6 @@ trait JsonResponseTrait {
             'code' => $code,
             'status' => __('failure'),
             'errors' => $message
-        ), $code);
+        ));
     }
 }
