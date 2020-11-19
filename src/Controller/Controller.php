@@ -314,7 +314,7 @@ abstract class Controller extends BaseController {
      */
     public function redirect($url, $time = 0) {
         if (app('request')->wantsJson()) {
-            return $this->json([
+            return $this->renderResponse([
                 'code' => 302,
                 'status' => __('failure'),
                 'errors' => '重定向',
