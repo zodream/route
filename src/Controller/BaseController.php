@@ -153,7 +153,7 @@ abstract class BaseController extends Action {
         $arguments = array();
         foreach ($parameters as $param) {
             $name = $param->getName();
-            $typeClass = $param->getClass();
+            $typeClass = $param->getType();
             if ($typeClass) {
                 $arguments[] = app($typeClass->getName());
                 continue;
