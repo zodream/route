@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Route\Controller;
 
 
@@ -10,6 +11,7 @@ namespace Zodream\Route\Controller;
  */
 use Zodream\Database\Migrations\Migration;
 use Zodream\Disk\Directory;
+use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Http\Response;
 use Zodream\Route\Router;
 
@@ -18,19 +20,19 @@ abstract class Module extends Action {
     /**
      * @var Directory
      */
-    private $_basePath;
+    protected $basePath;
 
 
     /**
      * @return Directory
      * @throws \ReflectionException
      */
-    public function getBasePath() {
-        if ($this->_basePath === null) {
+    public function getBasePath(): Directory {
+        if ($this->basePath === null) {
             $class = new \ReflectionClass($this);
-            $this->_basePath = new Directory(dirname($class->getFileName()));
+            $this->basePath = new Directory(dirname($class->getFileName()));
         }
-        return $this->_basePath;
+        return $this->basePath;
     }
 
     /**
@@ -116,14 +118,16 @@ abstract class Module extends Action {
      * @throws \Exception
      */
     public function invokeModule($module, $path) {
-        return app(Router::class)
-            ->invokeModule($path, $module);
+        $context = app(HttpContext::class);
+        return $context->make('route')
+            ->invokeModule($path, $module, $context);
     }
 
-    public static function url($path, $extra = null, $complete = true, $rewrite = true) {
+    public static function url($path = null, $parameters = [], $secure = null) {
         $url = false;
-        app(Router::class)->module(static::class, function () use (&$url, $path, $extra, $complete, $rewrite) {
-            $url = app('url')->to($path, $extra, $complete, $rewrite);
+        $args = func_get_args();
+        app(HttpContext::class)->make('route')->module(static::class, function () use (&$url, $args) {
+            $url = url()->to(...$args);
         });
         if ($url === false) {
             throw new \Exception(sprintf('[%s] is uninstall', static::class));

@@ -1,15 +1,17 @@
 <?php
 declare(strict_types = 1);
-
 namespace Zodream\Route;
 
 use Exception;
+use ReflectionClass;
 use Zodream\Helpers\Str;
-use Zodream\Infrastructure\Http\Request;
-use Zodream\Infrastructure\Http\Response;
+use Zodream\Infrastructure\Contracts\Http\Input;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
+use Zodream\Infrastructure\Contracts\HttpContext;
+use Zodream\Infrastructure\Contracts\Route as RouteInterface;
+use Zodream\Infrastructure\Support\BoundMethod;
 
-class Route {
+class Route implements RouteInterface {
 
     const HTTP_METHODS = ['OPTIONS', 'HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'TRACE', 'CONNECT'];
     /**
@@ -19,50 +21,50 @@ class Route {
     /**
      * @var string
      */
-    protected $definition;
+    protected string $definition;
     /**
      * @var array
      */
-    protected $constraints;
+    protected array $constraints;
     /**
      * @var array
      */
-    protected $defaults;
+    protected array $defaults;
     /**
      * @var array
      */
-    protected $methods;
+    protected array $methods;
     /**
      * @var array
      */
-    protected $parts;
+    protected array $parts;
     /**
      * @var string
      */
-    protected $regex;
+    protected string $regex;
     /**
      * @var array
      */
-    protected $paramMap;
+    protected array $paramMap;
     /**
      * @var array
      */
-    protected $params = [];
+    protected array $params = [];
 
-    protected $middlewares = [];
+    protected array $middlewares = [];
 
     /**
      * Class constructor
      *
      * @param string $definition
-     * @param callable $action
+     * @param callable|string $action
      * @param array $methods
      * @param array $constraints
      * @param array $defaults
      */
     public function __construct(
         string $definition,
-        callable $action,
+        $action,
         array $methods = self::HTTP_METHODS,
         array $constraints = [],
         array $defaults = []) {
@@ -70,7 +72,7 @@ class Route {
         $this->definition = $definition;
         $this->constraints = $constraints;
         $this->defaults = $defaults;
-        $this->setMethods($methods);
+        $this->method($methods);
         try {
             $this->parts = $this->parseDefinition($definition);
         } catch (Exception $ex) {
@@ -98,12 +100,13 @@ class Route {
         return new static($definition, $action, $methods,  $constraints, $defaults);
     }
 
-    public function setMethods(array $methods): Route {
+    public function method(array $methods): RouteInterface
+    {
         $this->methods = array_map('strtoupper', $methods);
         return $this;
     }
 
-    public function middleware(...$middlewares) {
+    public function middleware(...$middlewares): RouteInterface {
         $this->middlewares = array_merge($this->middlewares, $middlewares);
         return $this;
     }
@@ -208,7 +211,7 @@ class Route {
         return $regex;
     }
 
-    public function setAction(callable $action): Route {
+    public function setAction($action): Route {
         $this->action = $action;
         return $this;
     }
@@ -294,11 +297,11 @@ class Route {
     /**
      * Allow
      *
-     * @param Request $request
+     * @param Input $request
      * @return boolean
      */
-    public function allow(Request $request): bool {
-        return in_array($request->getMethod(), $this->methods);
+    public function allow(Input $request): bool {
+        return in_array($request->method(), $this->methods);
     }
 
     public function assemble(array $params = []): string {
@@ -348,15 +351,16 @@ class Route {
         return $path;
     }
 
-    protected function prepareHandle() {
+    protected function prepareHandle(HttpContext $context) {
         if (isset($this->constraints['module_path'])) {
-            url()->setModulePath($this->constraints['module_path']);
+            $context['module_path'] = $this->constraints['module_path'];
         }
         if (isset($this->constraints['module'])) {
             $moduleCls = $this->constraints['module'];
             $module = new $moduleCls();
+            $context['module'] = $module;
             $module->boot();
-            view()->setDirectory($module->getViewPath());
+            $context['view_path'] = $module->getViewPath();
         }
     }
 
@@ -386,14 +390,28 @@ class Route {
         return $result;
     }
 
-    public function handle(Request $request, Response $response) {
-        $this->prepareHandle();
-        $middlewareItems = array_merge($this->middlewares, [function(Request $request) use ($response) {
-            $request->append($this->params());
-            return call_user_func($this->action, $request, $response);
-        }]);
-        return (new MiddlewareProcessor())
-            ->process($request, ...$middlewareItems);
+    public function handle(HttpContext $context) {
+        $this->prepareHandle($context);
+        return (new MiddlewareProcessor($context))
+            ->through($this->middlewares)
+            ->send($context)
+            ->then(function (HttpContext $context) {
+                $context['request']->append($this->params());
+                if (is_callable($this->action)) {
+                    return call_user_func($this->action, $context);
+                }
+                return $this->invokeRegisterAction($this->action, $context);
+            });
+    }
 
+    protected function invokeRegisterAction($arg, HttpContext $context) {
+        list($class, $action) = explode('@', $arg);
+        if (!class_exists($class)) {
+            throw new Exception(sprintf('[%s] is not found', $arg));
+        }
+        $instance = BoundMethod::newClass($class, $context);
+        $context['controller'] = $instance;
+        $context['action'] = $action;
+        return BoundMethod::call([$instance, $action], $context, $context['request']);
     }
 }

@@ -1,18 +1,15 @@
 <?php
 declare(strict_types = 1);
-
 namespace Zodream\Route;
 
 use Closure;
-use Zodream\Helpers\Str;
-use Zodream\Http\Uri;
-use Zodream\Infrastructure\Http\Response;
 use Exception;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
-use Zodream\Route\Controller\Module;
-use ReflectionClass;
+use Zodream\Infrastructure\Contracts\HttpContext;
+use Zodream\Infrastructure\Contracts\Route as RouteInterface;
+use Zodream\Infrastructure\Contracts\Router as RouterInterface;
 
-class Router {
+class Router implements RouterInterface {
 
     const PREFIX = 'prefix';
     const PACKAGE = 'namespace';
@@ -38,7 +35,7 @@ class Router {
      */
     protected $staticRouteMap = [];
 
-    public function group(array $filters, $callback): Router {
+    public function group(array $filters, callable $callback): RouterInterface {
         $oldGlobalFilters = $this->globalFilters;
         $oldGlobalPrefix = $this->globalRoutePrefix;
         $oldGlobalPackage = $this->globalRoutePackage;
@@ -89,22 +86,24 @@ class Router {
      * @param $action
      * @return Route
      */
-    public function addRoute(array $method, string $uri, $action): Route {
+    public function addRoute(array $method, string $uri, $action): RouteInterface {
         if (is_string($action)) {
             $action = $this->addPackage($action);
         }
         $uri = $this->addPrefix($uri);
-        $route = new Route($uri, is_callable($action) ? $action : function() use ($action) {
-            return $this->invokeRegisterAction($action);
-        }, $method, $this->globalFilters);
+        $route = new Route($uri, $action, $method, $this->globalFilters);
         foreach ($route->getMethods() as $item) {
             $this->staticRouteMap[$item][$uri] = $route;
         }
         return $route;
     }
 
-    public function get($uri, $action = null) {
+    public function get($uri, $action = null): RouteInterface {
         return $this->addRoute(['GET', 'HEAD'], $uri, $action);
+    }
+
+    public function head($uri, $action = null): RouteInterface {
+        return $this->addRoute(['HEAD'], $uri, $action);
     }
 
     /**
@@ -114,7 +113,7 @@ class Router {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function post($uri, $action = null) {
+    public function post($uri, $action = null): RouteInterface {
         return $this->addRoute(['POST'], $uri, $action);
     }
 
@@ -125,7 +124,7 @@ class Router {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function put($uri, $action = null) {
+    public function put($uri, $action = null): RouteInterface {
         return $this->addRoute(['PUT'], $uri, $action);
     }
 
@@ -136,7 +135,7 @@ class Router {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function patch($uri, $action = null) {
+    public function patch($uri, $action = null): RouteInterface {
         return $this->addRoute(['PATCH'], $uri, $action);
     }
 
@@ -147,7 +146,7 @@ class Router {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function delete($uri, $action = null) {
+    public function delete($uri, $action = null): RouteInterface {
         return $this->addRoute(['DELETE'], $uri, $action);
     }
 
@@ -158,7 +157,7 @@ class Router {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function options($uri, $action = null) {
+    public function options($uri, $action = null): RouteInterface {
         return $this->addRoute(['OPTIONS'], $uri, $action);
     }
 
@@ -169,7 +168,7 @@ class Router {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function any($uri, $action = null) {
+    public function any($uri, $action = null): RouteInterface {
         return $this->addRoute(Route::HTTP_METHODS, $uri, $action);
     }
 
@@ -181,35 +180,13 @@ class Router {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function match($methods, $uri, $action = null) {
+    public function match($methods, $uri, $action = null): RouteInterface {
         return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
     }
 
-    public function module($name, callable $handle = null, array $modules = []) {
-        if (empty($modules)) {
-            $modules = config('modules');
-        }
-        $newModule = false;
-        foreach ($modules as $key => $module) {
-            if ($name === $key || strpos($name, $module) === 0) {
-                $newModule = [$key, $module];
-                break;
-            }
-        }
-        if (empty($newModule)) {
-            return false;
-        }
-        if (!is_callable($handle)) {
-            return $newModule;
-        }
-        $oldGlobalModule = url()->getModulePath();
-        url()->setModulePath($newModule[0]);
-        $res = call_user_func_array($handle, $newModule);
-        url()->setModulePath($oldGlobalModule);
-        return $res;
-    }
 
-    public function middleware(...$middlewares) {
+
+    public function middleware(...$middlewares): RouterInterface {
         $this->middlewares = array_merge($this->middlewares, $middlewares);
         return $this;
     }
@@ -237,195 +214,15 @@ class Router {
         return false;
     }
 
-    public function handle(string $method, $uri): Route {
-        if ($uri instanceof Uri) {
-            $uri = $uri->getPath();
-        }
-        return (new MiddlewareProcessor())
-            ->process(compact('method', 'uri'), ...$this->middlewares);
-    }
-
-
-
-    /**
-     * @param string $action
-     * @return Response
-     * @throws Exception
-     */
-//    protected function makeResponse(string $action): Response {
-//        timer('route response');
-//        $response = strpos($action, '@') === false
-//            ?  $this->invokeAutoAction($action)
-//            : $this->invokeRegisterAction($action);
-//        if (empty($response) || is_bool($response)) {
-//            return app('response');
-//        }
-//        return $response instanceof Response ? $response
-//            : app('response')->setParameter($response);
-//
-//    }
-
-
-    /**
-     * 执行动态方法
-     * @param $arg
-     * @return mixed
-     * @throws \Exception
-     */
-    protected function invokeRegisterAction($arg) {
-        list($class, $action) = explode('@', $arg);
-        if (!class_exists($class)) {
-            return $this->invokeController('Service\\'.app('app.module').'\\'.$class, $action);
-        }
-        $reflectionClass = new ReflectionClass( $class );
-        $method = $reflectionClass->getMethod($action);
-
-        $parameters = $method->getParameters();
-        $arguments = array();
-        foreach ($parameters as $param) {
-            $arguments[] = app('request')->get($param->getName());
-        }
-        return call_user_func_array(array(new $class, $action), $arguments);
-    }
-
-
-
-    /**
-     * 执行已注册模块
-     * @param $path
-     * @param $module
-     * @return mixed
-     * @throws \Exception
-     */
-    public function invokeModule($path, $module) {
-        $module = static::moduleInstance($module);
-        if (!$module instanceof Module) {
-            return $this->invokeClass($module, $path);
-        }
-        $module->boot();
-        view()->setDirectory($module->getViewPath());
-        // 允许模块内部进行自定义路由解析
-        if (method_exists($module, 'invokeRoute')
-            && ($response = $module->invokeRoute($path))) {
-            return $response;
-        }
-        $baseName = $module->getControllerNamespace();
-        return $this->invokePath($path, $baseName);
-    }
-
-    public function invokePath($path, $baseName) {
-        list($class, $action) = $this->getClassAndAction($path, $baseName);
-        if (!class_exists($class)) {
-            throw new Exception($class.
-                __(' class no exist!'));
-        }
-        return $this->invokeClass($class, $action);
-    }
-
-    /**
-     * @param $module
-     * @return Module
-     * @throws \Exception
-     */
-    public static function moduleInstance($module) {
-        if (class_exists($module)) {
-            return new $module();
-        }
-        $module = rtrim($module, '\\').'\Module';
-        if (class_exists($module)) {
-            return new $module();
-        }
-        throw new Exception($module.
-            __(' Module no exist!'));
-    }
-
-
-
-    /**
-     * @param $class
-     * @param $action
-     * @param array $vars
-     * @return Response|mixed
-     * @throws Exception
-     */
-    public function invokeController($class, $action, $vars = []) {
-        if (!Str::endWith($class, config('app.controller'))) {
-            $class .= config('app.controller');
-        }
-        if (!class_exists($class)) {
-            throw new Exception($class.
-                __(' class no exist!'));
-        }
-        return $this->invokeClass($class, $action, $vars);
-    }
-
-    /**
-     * 执行控制器，进行初始化并执行方法
-     * @param $instance
-     * @param $action
-     * @param array $vars
-     * @return Response|mixed
-     * @throws Exception
-     */
-    protected function invokeClass($instance, $action, $vars = []) {
-        timer('controller response');
-        if (is_string($instance)) {
-            $instance = new $instance;
-        }
-        if (method_exists($instance, 'init')) {
-            $instance->init();
-        }
-        if (method_exists($instance, 'invokeMethod')) {
-            return call_user_func(array($instance, 'invokeMethod'), $action, $vars);
-        }
-        throw new Exception(
-            __('UNKNOWN CLASS')
-        );
-    }
-
-    protected function getClassAndAction($path, $baseName) {
-        $baseName = rtrim($baseName, '\\').'\\';
-        $path = trim($path, '/');
-        if (empty($path)) {
-            return [$baseName.'Home'.config('app.controller'), 'index'];
-        }
-        $args = array_map(function ($arg) {
-            return Str::studly($arg);
-        }, explode('/', $path));
-        return $this->getControllerAndAction($args, $baseName);
-    }
-
-    protected function getControllerAndAction(array $paths, $baseName) {
-//        1.匹配全路径作为控制器 index 为方法,
-        $class = $baseName.implode('\\', $paths). config('app.controller');
-        if (class_exists($class)) {
-            return [$class, 'index'];
-        }
-//        2.匹配最后一个作为 方法
-        $count = count($paths);
-        if ($count > 1) {
-            $action = array_pop($paths);
-            $class = $baseName.implode('\\', $paths). config('app.controller');
-            if (class_exists($class)) {
-                return [$class, lcfirst($action)];
-            }
-        }
-//        3.匹配作为文件夹
-        $class = $baseName.implode('\\', $paths).'\\Home'. config('app.controller');
-        if (class_exists($class)) {
-            return [$class, 'index'];
-        }
-//        4.一个时匹配 home 控制器 作为方法
-        if ($count == 1) {
-            return [$baseName.'Home'.config('app.controller'), lcfirst($paths[0])];
-        }
-        $action = array_pop($paths);
-        $class = $baseName.implode('\\', $paths). '\\Home'. config('app.controller');
-        if (class_exists($class)) {
-            return [$class, lcfirst($action)];
-        }
-        throw new Exception(
-            sprintf(__('UNKNOWN URI: %s, Will Invoke: %s::%s'), app('request')->uri(), $class, $action)
-        );
+    public function handle(HttpContext $context): RouteInterface {
+        return (new MiddlewareProcessor($context))
+            ->through($this->middlewares)
+            ->send($context)
+            ->then(function ($passable) use ($context) {
+                if ($passable instanceof RouteInterface) {
+                    return $passable;
+                }
+                return $context->make(ModuleRoute::class);
+            });
     }
 }

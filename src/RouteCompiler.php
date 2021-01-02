@@ -1,16 +1,15 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Route;
 
-use function foo\func;
 use Zodream\Disk\Directory;
 use Zodream\Disk\File;
 use Zodream\Disk\FileObject;
 use ReflectionClass;
 use Zodream\Helpers\Str;
-use Zodream\Service\Config;
-use Zodream\Service\Factory;
 use ReflectionMethod;
 use ReflectionParameter;
+use Zodream\Route\Attributes\Route as RouteAttribute;
 
 /**
  * 路由生成静态缓存
@@ -18,7 +17,7 @@ use ReflectionParameter;
  */
 class RouteCompiler {
 
-    public function getAction($basePath, $controller) {
+    public function getAction(string $basePath, string $controller): array {
         if (!class_exists($controller)) {
             return [];
         }
@@ -27,7 +26,7 @@ class RouteCompiler {
         $routes = [];
         foreach ($methods as $method) {
             $action = $this->parseMethod($method);
-            if ($action === false) {
+            if (empty($action)) {
                 continue;
             }
             $action['controller'] = $controller;
@@ -45,7 +44,7 @@ class RouteCompiler {
                 }
                 $path = Str::unStudly($path, ' ');
                 $routes[$this->joinPath($basePath, $path)] = $action;
-                if (strpos($path, ' ') === false) {
+                if (!str_contains($path, ' ')) {
                     continue;
                 }
                 $path = str_replace(' ', '_', $path);
@@ -57,16 +56,44 @@ class RouteCompiler {
         return $routes;
     }
 
-    protected function joinPath($basePath, $path) {
+    protected function joinPath(string $basePath, string $path): string {
         return trim($basePath.'/'.$path, '/');
     }
 
-    protected function parseMethod(ReflectionMethod $method) {
+    protected function parseMethod(ReflectionMethod $method): array {
         $name = $method->getName();
-        if (!empty(config('app.action')) && !Str::endWith($name, config('app.action'))) {
-            return false;
+        $attributes = $method->getAttributes(RouteAttribute::class);
+        if (empty($attributes)) {
+            return $this->parseMethodDoc($method);
         }
-        $path = Str::lastReplace($name, config('app.action'));
+        $parameters = [];
+        foreach ($method->getParameters() as $parameter) {
+            $parameters[] = $this->parseParameter($parameter);
+        }
+        $data = [
+            'action' => $name,
+            'parameters' => $parameters,
+            'method' => [],
+            'path' => [],
+        ];
+        foreach ($attributes as $attribute) {
+            /** @var RouteAttribute $route */
+            $route = $attribute->newInstance();
+            $data['path'][] = $route->path;
+            $data['method'] = array_filter($route->method, function($item) {
+                return in_array($item, Route::HTTP_METHODS);
+            });
+        }
+        return $data;
+    }
+
+    protected function parseMethodDoc(ReflectionMethod $method): array {
+        $name = $method->getName();
+        $actionTag = config('app.action');
+        if (!empty($actionTag) && !Str::endWith($name, $actionTag)) {
+            return [];
+        }
+        $path = Str::lastReplace($name, $actionTag);
         $parameters = [];
         foreach ($method->getParameters() as $parameter) {
             $parameters[] = $this->parseParameter($parameter);
@@ -85,7 +112,7 @@ class RouteCompiler {
                 return strtoupper(trim($item));
             }, explode(',', $match[1]));
             $data['method'] = array_filter($method, function($item) {
-               return in_array($item, Route::HTTP_METHODS);
+                return in_array($item, Route::HTTP_METHODS);
             });
         }
         if (preg_match_all('/@route\s+(\S+)/i', $doc, $matches, PREG_SET_ORDER)) {
@@ -97,7 +124,7 @@ class RouteCompiler {
         return $data;
     }
 
-    protected function parseParameter(ReflectionParameter $parameter) {
+    protected function parseParameter(ReflectionParameter $parameter): array {
         $item = [
             'name' => $parameter->getName(),
             'type' => $parameter->getType() ? $parameter->getType()->getName() : '',
@@ -108,7 +135,7 @@ class RouteCompiler {
         return $item;
     }
 
-    public function getRoute(Directory $root, $basePath = '', $baseName = '') {
+    public function getRoute(Directory $root, string $basePath = '', string $baseName = ''): array {
         if (!$root->exist()) {
             return [];
         }
@@ -122,7 +149,7 @@ class RouteCompiler {
                 $path = Str::unStudly($path, ' ');
                 $args = $this->getRoute($file, $basePath.$path, $baseName.$file->getName());
                 $files = array_merge($files, $args);
-                if (strpos($path, ' ') === false) {
+                if (!str_contains($path, ' ')) {
                     return;
                 }
                 $path = str_replace(' ', '_', $path);
@@ -146,7 +173,7 @@ class RouteCompiler {
             }
             $args = $this->getAction($basePath.$path, $class);
             $files = array_merge($files, $args);
-            if (strpos($path, ' ') === false) {
+            if (!str_contains($path, ' ')) {
                 return;
             }
             $path = str_replace(' ', '_', $path);
@@ -159,7 +186,7 @@ class RouteCompiler {
         return $files;
     }
 
-    public function getModuleRoute($path, $module) {
+    public function getModuleRoute(string $path, string $module): array {
         if ($path == 'default') {
             $path = '';
         }
@@ -177,14 +204,15 @@ class RouteCompiler {
         }, $this->getRoute($root, $path, $module.'\\Service\\'));
     }
 
-    public function getDefaultRoute() {
-        $root = Factory::root()->directory('Service/'.app('app.module'));
-        return $this->getRoute($root, '', 'Service\\'.app('app.module').'\\');
+    public function getDefaultRoute(): array {
+        $moduleName = app('app.module') ?: 'Home';
+        $root = app_path()->directory('Service/'.$moduleName);
+        return $this->getRoute($root, '', 'Service\\'.$moduleName.'\\');
     }
 
-    public function getAllRoute() {
+    public function getAllRoute(): array {
         $routes = [];
-        $modules = Config::modules();
+        $modules = config('route.modules');
         if (!in_array('default', $modules) && !empty(app('app.module'))) {
             $routes = array_merge($routes, $this->getDefaultRoute());
         }
@@ -194,7 +222,7 @@ class RouteCompiler {
         return $this->formatRoute($routes);
     }
 
-    protected function formatRoute($routes) {
+    protected function formatRoute(array $routes): array {
         $data = [];
         foreach ($routes as $key => $route) {
             $uris = [$key];

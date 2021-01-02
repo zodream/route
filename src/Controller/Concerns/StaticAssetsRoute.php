@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace Zodream\Route\Controller\Concerns;
 
 use Zodream\Disk\File;
@@ -8,7 +9,8 @@ trait StaticAssetsRoute {
      * 返回允许的拓展名
      * @return array
      */
-    protected function allowExt() {
+    protected function allowExt(): array
+    {
         return [
             'js', 'css', 'png', 'gif', 'jpg', 'jpeg', 'json', 'bmp', 'svg'
         ];
