@@ -24,18 +24,13 @@ class Rest implements JsonResponse {
             $data = $data->toArray();
         }
         return $this->renderEncode(array_merge(array(
-            'code' => 200,
-            'status' => __('success'),
             'data' => $data
         ), $message));
     }
 
     public function renderPage(Page $page): Output
     {
-        return $this->renderEncode(array_merge([
-            'code' => 200,
-            'status' => __('success'),
-        ], $page->toArray()));
+        return $this->renderEncode($page->toArray());
     }
 
     public function renderFailure(array|string $message, int $code = 400): Output

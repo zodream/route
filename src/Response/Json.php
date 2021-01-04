@@ -6,7 +6,6 @@ use Zodream\Html\Page;
 use Zodream\Infrastructure\Contracts\ArrayAble;
 use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\Response\JsonResponse;
-use Zodream\Service\Http\RestResponse;
 
 class Json implements JsonResponse {
 
