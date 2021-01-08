@@ -3,13 +3,11 @@ declare(strict_types = 1);
 namespace Zodream\Route;
 
 use Exception;
-use ReflectionClass;
 use Zodream\Helpers\Str;
 use Zodream\Infrastructure\Contracts\Http\Input;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Contracts\Route as RouteInterface;
-use Zodream\Infrastructure\Support\BoundMethod;
 
 class Route implements RouteInterface {
 

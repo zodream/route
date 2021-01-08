@@ -8,7 +8,6 @@ use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Contracts\Route as RouteInterface;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
-use Zodream\Infrastructure\Support\BoundMethod;
 use Zodream\Route\Controller\Controller;
 use Zodream\Route\Controller\Module;
 use Zodream\Template\ViewFactory;
@@ -214,7 +213,7 @@ class ModuleRoute implements RouteInterface {
                 $request = $context['request'];
                 $request->append($vars);
                 $method = $action.config('app.action');
-                $res = BoundMethod::call([$instance, $method], $context, $request);
+                $res = BoundMethod::call([$instance, $method], $context, $vars);
                 if (method_exists($instance, 'finalize')) {
                     $instance->finalize($context, $res);
                 }
