@@ -64,7 +64,7 @@ abstract class Controller {
      * @param  array  $parameters
      * @return Output
      */
-    public function callMethod(string $method, array $parameters)
+    public function callMethod(string $method, array $parameters = [])
     {
         return call_user_func_array([$this, $method], $parameters);
     }
