@@ -13,6 +13,7 @@ class Router implements RouterInterface {
 
     const PREFIX = 'prefix';
     const PACKAGE = 'namespace';
+    const MODULE = 'module';
     const MIDDLEWARE = 'middleware';
     const BEFORE = 'before';
     const AFTER = 'after';
@@ -35,18 +36,19 @@ class Router implements RouterInterface {
      */
     protected $staticRouteMap = [];
 
-    public function group(array $filters, callable $callback): RouterInterface {
+    public function group(array $filters, $callback): RouterInterface {
         $oldGlobalFilters = $this->globalFilters;
         $oldGlobalPrefix = $this->globalRoutePrefix;
         $oldGlobalPackage = $this->globalRoutePackage;
         $this->globalFilters = array_merge_recursive($this->globalFilters,
             array_intersect_key($filters,
                 [
+                    self::MODULE => 1,
                     self::AFTER => 1,
                     self::BEFORE => 1
                 ]));
         $newPrefix = isset($filters[self::PREFIX]) ? trim($filters[self::PREFIX], '/') : '';
-        $newPackage = isset($filters[self::PACKAGE]) ? trim($filters[self::PACKAGE], '\\') : '';
+        $newPackage = isset($filters[self::PACKAGE]) ? $filters[self::PACKAGE] : '';
         $this->globalRoutePrefix = $this->addPrefix($newPrefix);
         $this->globalRoutePackage = $this->addPackage($newPackage);
         $this->loadRoutes($callback);
@@ -64,7 +66,8 @@ class Router implements RouterInterface {
     }
 
     protected function addPackage(string $package): string {
-        if (empty($this->globalRoutePackage)) {
+        if (empty($this->globalRoutePackage) || str_starts_with($package,
+            '\\')) {
             return trim($package, '\\');
         }
         return trim(trim($this->globalRoutePackage, '\\') . '\\' . $package, '\\');
@@ -75,7 +78,7 @@ class Router implements RouterInterface {
             $routes($this);
         } else {
             $router = $this;
-            require $routes;
+            require (string)$routes;
         }
     }
 

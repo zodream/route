@@ -8,6 +8,8 @@ use Zodream\Infrastructure\Contracts\Http\Input;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Contracts\Route as RouteInterface;
+use Zodream\Route\Controller\Module;
+use Zodream\Template\ViewFactory;
 
 class Route implements RouteInterface {
 
@@ -390,6 +392,9 @@ class Route implements RouteInterface {
 
     public function handle(HttpContext $context) {
         $this->prepareHandle($context);
+        if (isset($this->constraints[Router::MODULE])) {
+            $this->invokeModule($this->constraints[Router::MODULE], $context);
+        }
         return (new MiddlewareProcessor($context))
             ->through($this->middlewares)
             ->send($context)
@@ -402,6 +407,16 @@ class Route implements RouteInterface {
             });
     }
 
+    public function invokeModule($module, HttpContext $context) {
+        $instance = ModuleRoute::moduleInstance($module, $context);
+        if (!$instance instanceof Module) {
+            throw new Exception(sprintf('[%s] is not Module::class', $module));
+        }
+        $context['module'] = $instance;
+        $instance->boot();
+        $context['view_base'] = $instance->getViewPath();
+    }
+
     protected function invokeRegisterAction($arg, HttpContext $context) {
         list($class, $action) = explode('@', $arg);
         if (!class_exists($class)) {
@@ -410,6 +425,23 @@ class Route implements RouteInterface {
         $instance = BoundMethod::newClass($class, $context);
         $context['controller'] = $instance;
         $context['action'] = $action;
-        return BoundMethod::call([$instance, $action], $context, $context['request']);
+        static::refreshDefaultView($context);
+        return BoundMethod::call([$instance, $action], $context, $this->params());
+    }
+
+    protected static function getViewFolder($module, $controller): string {
+        $pattern = '.*?Service.(.+)';
+        return preg_replace('/^'.$pattern.'$/', '$1', get_class($controller)).'/';
+    }
+
+    public static function refreshDefaultView(HttpContext $context) {
+        /** @var ViewFactory $view */
+        $view = $context['view'];
+        if (isset($context['view_base'])) {
+            $view->setDirectory($context['view_base']);
+        }
+        $context['view_controller_path'] = static::getViewFolder(isset($context['module'])
+            ? $context['module'] : null, $context['controller']);
+        $view->setDefaultFile($context['view_controller_path'].$context['action']);
     }
 }
