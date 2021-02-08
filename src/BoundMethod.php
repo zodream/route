@@ -39,17 +39,21 @@ class BoundMethod extends BaseBound {
         if (!$parameter->hasType()) {
             return $value;
         }
-        $type = $parameter->getType()->getName();
-        if ($type === 'int') {
+        $type = $parameter->getType();
+        if ($type instanceof \ReflectionUnionType) {
+            return $value;
+        }
+        $typeName = $type->getName();
+        if ($typeName === 'int') {
             return intval($value);
         }
-        if ($type === 'float') {
+        if ($typeName === 'float') {
             return floatval($value);
         }
-        if ($type === 'double') {
+        if ($typeName === 'double') {
             return doubleval($value);
         }
-        if ($type === 'bool') {
+        if ($typeName === 'bool') {
             return (is_numeric($value) && $value > 0) || (is_bool($value) && $value)
                 || (is_string($value) && strtolower($value) === 'true') || !empty($value);
         }
