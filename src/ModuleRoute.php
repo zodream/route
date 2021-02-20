@@ -217,7 +217,7 @@ class ModuleRoute implements RouteInterface {
                 if (method_exists($instance, 'finalize')) {
                     $instance->finalize($context, $res);
                 }
-                return $res;
+                return empty($res) ? response() : $res;
             });
     }
 
@@ -282,7 +282,7 @@ class ModuleRoute implements RouteInterface {
             return [$class, lcfirst($action)];
         }
         throw new Exception(
-            sprintf(__('UNKNOWN URI: %s, Will Invoke: %s::%s'), app('request')->url(), $class, $action)
+            sprintf(__('UNKNOWN URI: %s, Will Invoke: %s::%s'), request()->url(), $class, $action)
         );
     }
 
