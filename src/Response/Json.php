@@ -46,8 +46,11 @@ class Json implements JsonResponse {
         ], $page->toArray()));
     }
 
-    public function renderFailure(array|string $message, int $code = 400): Output
+    public function renderFailure(array|string $message, int $code = 400, int $statusCode = 0): Output
     {
+        if ($statusCode > 0) {
+            response()->statusCode($statusCode);
+        }
         return $this->renderEncode([
             'code' => $code,
             'status' => __('failure'),
@@ -75,7 +78,7 @@ class Json implements JsonResponse {
      * @throws \Exception
      */
     public function renderResponse($data, $type = 'json'): Output {
-        $response = app('response');
+        $response = response();
         switch (strtolower($type)) {
             case 'xml':
                 return $response->xml($data);

@@ -48,10 +48,11 @@ trait Json {
      * 响应失败数据
      * @param string|array $message
      * @param int $code
+     * @param int $statusCode
      * @return Output
      */
-    public function renderFailure(string|array $message, int $code = 400): Output
+    public function renderFailure(string|array $message, int $code = 400, int $statusCode = 0): Output
     {
-        return $this->jsonFactory()->renderFailure($message, $code);
+        return $this->jsonFactory()->renderFailure($message, $code, $statusCode);
     }
 }

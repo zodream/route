@@ -33,9 +33,9 @@ class Rest implements JsonResponse {
         return $this->renderEncode($page->toArray());
     }
 
-    public function renderFailure(array|string $message, int $code = 400): Output
+    public function renderFailure(array|string $message, int $code = 400, int $statusCode = 0): Output
     {
-        response()->statusCode($code);
+        response()->statusCode($statusCode > 0 ? $statusCode : $code);
         $data = is_array($message) ? $message : [
             'code' => $code,
             'message' => $message
