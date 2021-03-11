@@ -85,7 +85,7 @@ class RequestMiddleware implements MiddlewareInterface {
         }
         if ($role === '@') {
             return !auth()->guest() ?:
-                $this->renderResponse($context, '', 401, url(config('auth.home'), ['redirect_uri' => $context['request']->url()]));
+                $this->renderRedirectAuth($context);
         }
         if ($role === 'p' || $role === 'post') {
             return $context['request']->isPost() ?:
@@ -97,7 +97,7 @@ class RequestMiddleware implements MiddlewareInterface {
         return $this->processCustomRule($role, $context);
     }
 
-    protected function processCustomRule(string $role, HttpContext $context): bool
+    protected function processCustomRule(string $role, HttpContext $context)
     {
         return true;
     }
@@ -110,6 +110,10 @@ class RequestMiddleware implements MiddlewareInterface {
         $method = $context['request']->method();
         return !isset($methods[$action]) ||
             in_array($method, $methods[$action]);
+    }
+
+    protected function renderRedirectAuth(HttpContext $context, string $message = '') {
+        return $this->renderResponse($context, $message, 401, url(config('auth.home'), ['redirect_uri' => $context['request']->url()]));
     }
 
     protected function renderResponse(HttpContext $context, string $message, int $code = 404, string $url = '') {
