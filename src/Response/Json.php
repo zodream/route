@@ -51,11 +51,18 @@ class Json implements JsonResponse {
         if ($statusCode > 0) {
             response()->statusCode($statusCode);
         }
-        return $this->renderEncode([
+        $data = is_array($message) ? $message : [
             'code' => $code,
             'status' => __('failure'),
             'message' => $message
-        ]);
+        ];
+        if (!isset($data['code'])) {
+            $data['code'] = $code;
+        }
+        if (!isset($data['message']) && !is_array($message)) {
+            $data['message'] = $message;
+        }
+        return $this->renderEncode($data);
     }
 
     /**

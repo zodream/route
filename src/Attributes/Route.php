@@ -11,6 +11,7 @@ class Route {
         public string $path,
         public array $method = [],
         public array $middleware = [],
+        public array $module = [],
         public array $options = [])
     {
 

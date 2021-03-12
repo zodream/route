@@ -46,12 +46,6 @@ class Rest implements JsonResponse {
         if (!isset($data['message']) && !is_array($message)) {
             $data['message'] = $message;
         }
-        if (!empty($errors)) {
-            $data['errors'] = $errors;
-        }
-        if (!empty($description)) {
-            $data['description'] = $description;
-        }
         return $this->render($data);
     }
 
