@@ -10,6 +10,7 @@ use Zodream\Helpers\Str;
 use ReflectionMethod;
 use ReflectionParameter;
 use Zodream\Route\Attributes\Route as RouteAttribute;
+use Zodream\Infrastructure\Contracts\Route as RouteInterface;
 
 /**
  * 路由生成静态缓存
@@ -17,55 +18,115 @@ use Zodream\Route\Attributes\Route as RouteAttribute;
  */
 class RouteCompiler {
 
-    public function getAction(string $basePath, string $controller): array {
-        if (!class_exists($controller)) {
+    public function map(callable $cb) {
+        $modules = config('route.modules', []);
+        if (!in_array('default', $modules) && !empty(app('app.module'))) {
+            $this->mapDefault($cb);
+        }
+        foreach ($modules as $key => $module) {
+            $this->mapModule($cb, $key, $module);
+        }
+    }
+
+    protected function mapDefault(callable $cb) {
+        $moduleName = app('app.module') ?: 'Home';
+        $root = app_path()->directory('Service/'.$moduleName);
+        $this->mapFile($cb, $root, 'Service\\'.$moduleName.'\\');
+    }
+
+    protected function mapModule(callable $cb, string $path, string $module) {
+        $class = $module.'\Module';
+        if (!class_exists($class)) {
             return [];
         }
-        $func = new ReflectionClass($controller);
-        $methods = $func->getMethods(ReflectionMethod::IS_PUBLIC);
-        $routes = [];
-        foreach ($methods as $method) {
-            $action = $this->parseMethod($method);
-            if (empty($action)) {
-                continue;
+        $func = new ReflectionClass($class);
+        $file = new File($func->getFileName());
+        $root = $file->getDirectory()->directory('Service');
+        $this->mapFile(function (array $action) use ($cb, $path, $module) {
+            if ($path === 'default' || $path === '') {
+                $action['module'] = ['' => $module];
+                call_user_func($cb, $action);
             }
-            $action['controller'] = $controller;
-            foreach ((array)$action['path'] as $path) {
-                if (empty($path)) {
-                    continue;
-                }
-                if ($path == 'index') {
-                    $routes[$basePath] = $action;
-                    $routes[$basePath.'/'] = $action;
-                }
-                if (substr($path, 0, 1) === '/') {
-                    $routes[trim($path, '/')] = $action;
-                    continue;
-                }
-                $path = Str::unStudly($path, ' ');
-                $routes[$this->joinPath($basePath, $path)] = $action;
-                if (!str_contains($path, ' ')) {
-                    continue;
-                }
-                $path = str_replace(' ', '_', $path);
-                $routes[$this->joinPath($basePath, $path)] = $action;
-                $path = str_replace('_', '-', $path);
-                $routes[$this->joinPath($basePath, $path)] = $action;
+            if (isset($action['path'])) {
+                $action['path'] = $this->joinPath($path, $action['path']);
             }
+            $action['module'] = [$path => $module];
+            call_user_func($cb, $action);
+        }, $root, $module.'\\Service\\');
+    }
+
+    protected function mapFile(callable $cb, Directory $folder, string $base) {
+        if (!$folder->exist()) {
+            return;
         }
-        return $routes;
+        if (!empty($base)) {
+            $base = trim($base, '\\').'\\';
+        }
+        $folder->map(function (FileObject $file) use ($cb, $base) {
+            if ($file instanceof Directory) {
+                $path = Str::unStudly($file->getName(), ' ');
+                $this->mapFile(function (array $action) use ($cb, $path) {
+                    if (!isset($action['path'])) {
+                        call_user_func($cb, $action);
+                        return;
+                    }
+                    $this->mapStudlyName($cb, $action, $path, $action['path']);
+                }, $file, $base.$file->getName());
+                return;
+            }
+            $prefix = config('app.controller');
+            $name = $file->getNameWithoutExtension();
+            if ($name === $prefix) {
+                return;
+            }
+            $path = Str::lastReplace($name, config('app.controller'));
+            $path = Str::unStudly($path, ' ');
+            $this->mapAction(function (array $action) use ($cb, $path) {
+                if (!isset($action['path'])) {
+                    call_user_func($cb, $action);
+                    return;
+                }
+                if ($path === 'home') {
+                    call_user_func($cb, $action);
+                }
+                $this->mapStudlyName($cb, $action, $path, $action['path']);
+            }, $base.$name);
+        });
     }
 
-    protected function joinPath(string $basePath, string $path): string {
-        return trim($basePath.'/'.$path, '/');
+    protected function mapStudlyName(callable $cb, array $action, string $name, string $path) {
+        $action['path'] = $this->joinPath($name, $path);
+        call_user_func($cb, $action);
+        if (!str_contains($name, ' ')) {
+            return;
+        }
+        $action['path'] = $this->joinPath(str_replace(' ', '_', $name), $path);
+        call_user_func($cb, $action);
+        $action['path'] = $this->joinPath(str_replace(' ', '-', $name), $path);
+        call_user_func($cb, $action);
     }
 
-    protected function parseMethod(ReflectionMethod $method): array {
-        $name = $method->getName();
+    protected function mapAction(callable $cb, string $cls) {
+        if (!class_exists($cls)) {
+            return [];
+        }
+        $func = new ReflectionClass($cls);
+        $methods = $func->getMethods(ReflectionMethod::IS_PUBLIC);
+        foreach ($methods as $method) {
+            $this->mapActionRule(function (array $action) use ($cb, $cls) {
+                $action['controller'] = $cls;
+                call_user_func($cb, $action);
+            }, $method);
+        }
+    }
+
+    protected function mapActionRule(callable $cb, ReflectionMethod $method) {
         $attributes = $method->getAttributes(RouteAttribute::class);
         if (empty($attributes)) {
-            return $this->parseMethodDoc($method);
+            $this->mapMethodDoc($cb, $method);
+            return;
         }
+        $name = $method->getName();
         $parameters = [];
         foreach ($method->getParameters() as $parameter) {
             $parameters[] = $this->parseParameter($parameter);
@@ -73,25 +134,26 @@ class RouteCompiler {
         $data = [
             'action' => $name,
             'parameters' => $parameters,
-            'method' => [],
-            'path' => [],
         ];
         foreach ($attributes as $attribute) {
+            $action = $data;
             /** @var RouteAttribute $route */
             $route = $attribute->newInstance();
-            $data['path'][] = $route->path;
-            $data['method'] = array_filter($route->method, function($item) {
+            $action['regex'] = RouteRegex::parse($route->path);
+            $action['method'] = array_filter($route->method, function($item) {
                 return in_array($item, Route::HTTP_METHODS);
             });
+            $action['module'] = $route->module;
+            $action['middlewares'] = $route->middleware;
+            call_user_func($cb, $action);
         }
-        return $data;
     }
 
-    protected function parseMethodDoc(ReflectionMethod $method): array {
+    protected function mapMethodDoc(callable $cb, ReflectionMethod $method) {
         $name = $method->getName();
         $actionTag = config('app.action');
         if (!empty($actionTag) && !Str::endWith($name, $actionTag)) {
-            return [];
+            return;
         }
         $path = Str::lastReplace($name, $actionTag);
         $parameters = [];
@@ -101,11 +163,11 @@ class RouteCompiler {
         $doc = $method->getDocComment();
         $data = [
             'action' => $name,
-            'path' => $path,
             'parameters' => $parameters
         ];
         if (empty($doc)) {
-            return $data;
+            $this->mapDefaultAction($cb, $data, $path);
+            return;
         }
         if (preg_match('/@method\s+(.+)/i', $doc, $match)) {
             $method = array_map(function ($item) {
@@ -115,19 +177,54 @@ class RouteCompiler {
                 return in_array($item, Route::HTTP_METHODS);
             });
         }
-        if (preg_match_all('/@route\s+(\S+)/i', $doc, $matches, PREG_SET_ORDER)) {
-            $data['routes'] = array_column($matches, 1);
+        if (!preg_match_all('/@(route|path)\s+(\S+)/i', $doc, $matches, PREG_SET_ORDER)) {
+            $this->mapDefaultAction($cb, $data, $path);
+            return;
         }
-        if (preg_match_all('/@path\s+(\S+)/i', $doc, $matches, PREG_SET_ORDER)) {
-            $data['path'] = array_column($matches, 1);
+        unset($data['path']);
+        foreach ($matches as $match) {
+            $action = $data;
+            $action['regex'] = RouteRegex::parse($match[2]);
+            call_user_func($cb, $action);
         }
-        return $data;
     }
+
+    /**
+     * 处理action 一些变化情况
+     * @param callable $cb
+     * @param array $action
+     * @param string $path
+     */
+    protected function mapDefaultAction(callable $cb, array $action, string $path) {
+        $action['path'] = $path;
+        call_user_func($cb, $action);
+        if ($path === 'index') {
+            $action['path'] = '';
+            call_user_func($cb, $action);
+            return;
+        }
+        $path = Str::unStudly($path, ' ');
+        if (!str_contains($path, ' ')) {
+            return;
+        }
+        $action['path'] = str_replace(' ', '_', $path);
+        call_user_func($cb, $action);
+        $action['path'] = str_replace(' ', '-', $path);
+        call_user_func($cb, $action);
+    }
+
+    protected function joinPath(string $basePath, string $path): string {
+        if (empty($path)) {
+            return $basePath;
+        }
+        return trim($basePath.'/'.$path, '/');
+    }
+
 
     protected function parseParameter(ReflectionParameter $parameter): array {
         $item = [
             'name' => $parameter->getName(),
-            'type' => $parameter->getType() ? $parameter->getType()->getName() : '',
+            'type' => $this->formatParameterType($parameter),
         ];
         if ($parameter->isDefaultValueAvailable()) {
             $item['default'] = $parameter->getDefaultValue();
@@ -135,109 +232,73 @@ class RouteCompiler {
         return $item;
     }
 
-    public function getRoute(Directory $root, string $basePath = '', string $baseName = ''): array {
-        if (!$root->exist()) {
-            return [];
+    protected function formatParameterType(ReflectionParameter $parameter) {
+        if ($parameter->hasType()) {
+            return '';
         }
-        if (!empty($basePath)) {
-            $basePath = trim($basePath, '/').'/';
+        $type = $parameter->getType();
+        if (empty($type) || $type instanceof \ReflectionUnionType) {
+            return '';
         }
-        $files = [];
-        $root->map(function (FileObject $file) use (&$files, $baseName, $basePath) {
-            if (!$file instanceof File) {
-                $path = $file->getName();
-                $path = Str::unStudly($path, ' ');
-                $args = $this->getRoute($file, $basePath.$path, $baseName.$file->getName());
-                $files = array_merge($files, $args);
-                if (!str_contains($path, ' ')) {
-                    return;
-                }
-                $path = str_replace(' ', '_', $path);
-                $args = $this->getRoute($file, $basePath.$path, $baseName.$file->getName());
-                $files = array_merge($files, $args);
-                $path = str_replace('_', '-', $path);
-                $args = $this->getRoute($file, $basePath.$path, $baseName.$file->getName());
-                $files = array_merge($files, $args);
-                return;
-            }
-            $name = $file->getNameWithoutExtension();
-            if ($name == config('app.controller')) {
-                return;
-            }
-            $class = $baseName.$name;
-            $path = Str::lastReplace($name, config('app.controller'));
-            $path = Str::unStudly($path, ' ');
-            if ($path == 'home') {
-                $args = $this->getAction(trim($basePath, '/'), $class);
-                $files = array_merge($files, $args);
-            }
-            $args = $this->getAction($basePath.$path, $class);
-            $files = array_merge($files, $args);
-            if (!str_contains($path, ' ')) {
-                return;
-            }
-            $path = str_replace(' ', '_', $path);
-            $args = $this->getAction($basePath.$path, $class);
-            $files = array_merge($files, $args);
-            $path = str_replace('_', '-', $path);
-            $args = $this->getAction($basePath.$path, $class);
-            $files = array_merge($files, $args);
-        });
-        return $files;
-    }
-
-    public function getModuleRoute(string $path, string $module): array {
-        if ($path == 'default') {
-            $path = '';
-        }
-        $class = $module.'\Module';
-        if (!class_exists($class)) {
-            return [];
-        }
-        $func = new ReflectionClass($class);
-        $file = new File($func->getFileName());
-        $root = $file->getDirectory()->directory('Service');
-        return array_map(function($item) use ($module, $path) {
-            $item['module'] = $module;
-            $item['module_path'] = $path;
-            return $item;
-        }, $this->getRoute($root, $path, $module.'\\Service\\'));
-    }
-
-    public function getDefaultRoute(): array {
-        $moduleName = app('app.module') ?: 'Home';
-        $root = app_path()->directory('Service/'.$moduleName);
-        return $this->getRoute($root, '', 'Service\\'.$moduleName.'\\');
+        return $type->getName();
     }
 
     public function getAllRoute(): array {
-        $routes = [];
-        $modules = config('route.modules');
-        if (!in_array('default', $modules) && !empty(app('app.module'))) {
-            $routes = array_merge($routes, $this->getDefaultRoute());
-        }
-        foreach ($modules as $key => $module) {
-            $routes = array_merge($routes, $this->getModuleRoute($key, $module));
-        }
-        return $this->formatRoute($routes);
+        $routes = [
+            0 => [], // 普通
+            1 => [], // 正则匹配的
+        ];
+        $this->map(function (array $action) use (&$routes) {
+//            $action = [
+//                'method' => [],
+//                'regex' => [],
+//                'controller' => '',
+//                'action' => '',
+//                'parameters' => [],
+//                'middlewares' => [],
+//                'module' => [],
+//            ];
+            if (isset($action['path'])) {
+                $action['regex'] = $action['path'];
+            }
+            $methods = !isset($action['method']) || empty($action['method']) ? ['any'] : $action['method'];
+            unset($action['method'], $action['path']);
+            $isMatch = is_array($action['regex']) && isset($action['regex']['parameters'])
+                && !empty($action['regex']['parameters']);
+            $pattern = !is_array($action['regex']) ? $action['regex'] : $action['regex']['regex'];
+            foreach ($methods as $method) {
+                $routes[$isMatch ? 1 : 0][$method][$pattern] = $action;
+            }
+        });
+        return $routes;
     }
 
-    protected function formatRoute(array $routes): array {
-        $data = [];
-        foreach ($routes as $key => $route) {
-            $uris = [$key];
-            if (isset($route['route'])) {
-                $uris[] = $route['route'];
-            }
-            $methods = !isset($route['method']) || empty($route['method']) ? ['any'] : $route['method'];
-            unset($route['path'], $route['route']);
-            foreach ($methods as $method) {
-                foreach ($uris as $uri) {
-                    $data[$method][$uri] = $route;
-                }
-            }
+    public function match(string $method, string $path, array $routes): ?RouteInterface {
+        if (isset($routes[0][$method][$path])) {
+            return $this->toRoute($routes[0][$method][$path]);
         }
-        return $data;
+        if (!isset($routes[1][$method])) {
+            return null;
+        }
+        foreach ($routes[1][$method] as $route) {
+            $match = RouteRegex::match($path, $route['regex']);
+            if (empty($match)) {
+                continue;
+            }
+            return $this->toRoute($route);
+        }
+        return null;
+    }
+
+    public function toRoute(array $route) {
+        return new StaticRoute(
+            $route['controller'],
+            $route['action'],
+            $route['regex'],
+            $route['parameters'],
+            isset($route['middlewares']) ? $route['middlewares'] : [],
+            isset($route['module']) ? $route['module'] : [],
+        );
     }
 
 }

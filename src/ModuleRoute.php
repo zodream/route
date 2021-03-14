@@ -188,7 +188,7 @@ class ModuleRoute implements RouteInterface {
         $this->controller = $instance;
         $this->action = $action;
         $context['action'] = $action;
-        static::refreshDefaultView($context);
+        Route::refreshDefaultView($context, true);
         if (method_exists($instance, 'init')) {
             $instance->init($context);
         }
@@ -284,30 +284,6 @@ class ModuleRoute implements RouteInterface {
         throw new Exception(
             sprintf(__('UNKNOWN URI: %s, Will Invoke: %s::%s'), request()->url(), $class, $action)
         );
-    }
-
-    /**
-     * 获取控制所在的ui路径
-     * @param $module
-     * @param $controller
-     * @return string
-     * @throws Exception
-     */
-    protected static function getViewFolder($module, $controller): string {
-        $pattern = (empty($module) ? ('.*?Service.'.app('app.module').'.(.*)')
-            : '.*?Service.(.+)').config('app.controller');
-        return preg_replace('/^'.$pattern.'$/', '$1', get_class($controller)).'/';
-    }
-
-    public static function refreshDefaultView(HttpContext $context) {
-        /** @var ViewFactory $view */
-        $view = $context['view'];
-        if (isset($context['view_base'])) {
-            $view->setDirectory($context['view_base']);
-        }
-        $context['view_controller_path'] = static::getViewFolder(isset($context['module'])
-            ? $context['module'] : null, $context['controller']);
-        $view->setDefaultFile($context['view_controller_path'].$context['action']);
     }
 
     public static function moduleInstance($module, HttpContext $context) {

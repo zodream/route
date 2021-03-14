@@ -43,20 +43,20 @@ class BoundMethod extends BaseBound {
         if ($type instanceof \ReflectionUnionType) {
             return $value;
         }
-        $typeName = $type->getName();
-        if ($typeName === 'int') {
-            return intval($value);
+        return static::formatValue($type->getName(), $value);
+    }
+
+    public static function formatValue(string $type, $value) {
+        if (empty($type)) {
+            return $value;
         }
-        if ($typeName === 'float') {
-            return floatval($value);
-        }
-        if ($typeName === 'double') {
-            return doubleval($value);
-        }
-        if ($typeName === 'bool') {
-            return (is_numeric($value) && $value > 0) || (is_bool($value) && $value)
-                || (is_string($value) && strtolower($value) === 'true') || !empty($value);
-        }
-        return $value;
+        return match ($type) {
+            'int' => intval($value),
+            'float' => floatval($value),
+            'double' => doubleval($value),
+            'bool' => (is_numeric($value) && $value > 0) || (is_bool($value) && $value)
+                || (is_string($value) && strtolower($value) === 'true') || !empty($value),
+            default => $value
+        };
     }
 }

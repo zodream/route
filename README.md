@@ -21,6 +21,7 @@ $router->group([
     'module' => 'Module\Blog\Module',
     'namespace' => '\Module\Blog\Service'
 ], function ($router) {
+   $router->get('hhh/{id}/{name}?', 'HomeController@indexAction');
    $router->get('hhh', 'HomeController@indexAction');
 });
 ```

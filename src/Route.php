@@ -3,7 +3,6 @@ declare(strict_types = 1);
 namespace Zodream\Route;
 
 use Exception;
-use Zodream\Helpers\Str;
 use Zodream\Infrastructure\Contracts\Http\Input;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
 use Zodream\Infrastructure\Contracts\HttpContext;
@@ -37,15 +36,8 @@ class Route implements RouteInterface {
     /**
      * @var array
      */
-    protected array $parts;
-    /**
-     * @var string
-     */
-    protected string $regex;
-    /**
-     * @var array
-     */
-    protected array $paramMap;
+    protected array $regex;
+
     /**
      * @var array
      */
@@ -73,12 +65,7 @@ class Route implements RouteInterface {
         $this->constraints = $constraints;
         $this->defaults = $defaults;
         $this->method($methods);
-        try {
-            $this->parts = $this->parseDefinition($definition);
-        } catch (Exception $ex) {
-
-        }
-        $this->regex = $this->buildRegex($this->parts, $constraints);
+        $this->regex = RouteRegex::parse($definition);
     }
 
     /**
@@ -118,97 +105,6 @@ class Route implements RouteInterface {
      */
     public function getMethods() {
         return $this->methods;
-    }
-    /**
-     * Parse definition
-     *
-     * @param string $definition
-     * @return array
-     * @throws Exception
-     */
-    protected function parseDefinition(string $definition): array {
-        $pos = 0;
-        $length = strlen($definition);
-        $parts = [];
-        $stack = [&$parts];
-        $level = 0;
-        while ($pos < $length) {
-            preg_match('(\G(?P<literal>[^:{\[\]]*)(?P<token>[:{\[\]]|$))', $definition, $matches, 0, $pos);
-            $pos += strlen($matches[0]);
-            if (!empty($matches['literal'])) {
-                $stack[$level][] = ['literal', $matches['literal']];
-            }
-            if ($matches['token'] === ':') {
-                $pattern = '(\G(?P<name>[^:/{\[\]]+)(?:{(?P<delimiters>[^}]+)})?:?)';
-                if (!preg_match($pattern, $definition, $matches, 0, $pos)) {
-                    throw new Exception(
-                        __('Found empty parameter name')
-                    );
-                }
-                $stack[$level][] = [
-                    'parameter',
-                    $matches['name'],
-                    isset($matches['delimiters']) ? $matches['delimiters'] : null,
-                ];
-                $pos += strlen($matches[0]);
-            } elseif ($matches['token'] === '[') {
-                $stack[$level][] = ['optional', []];
-                $stack[$level + 1] = &$stack[$level][count($stack[$level]) - 1][1];
-                $level++;
-            } elseif ($matches['token'] === ']') {
-                unset($stack[$level]);
-                $level--;
-                if ($level < 0) {
-                    throw new Exception(
-                        __(
-                            'Found closing bracket without matching opening bracket'
-                        )
-                    );
-                }
-            } else {
-                break;
-            }
-        }
-        if ($level > 0) {
-            throw new Exception(
-                __('Found unbalanced brackets')
-            );
-        }
-        return $parts;
-    }
-
-    /**
-     * Build regex
-     *
-     * @param array $parts
-     * @param array $constraints
-     * @param int $groupIndex
-     * @return string
-     */
-    protected function buildRegex(array $parts, array $constraints, &$groupIndex = 1) {
-        $regex = '';
-        foreach ($parts as $part) {
-            switch ($part[0]) {
-                case 'literal':
-                    $regex .= preg_quote($part[1]);
-                    break;
-                case 'parameter':
-                    $groupName = '?P<param' . $groupIndex . '>';
-                    if (isset($constraints[$part[1]])) {
-                        $regex .= '(' . $groupName . $constraints[$part[1]] . ')';
-                    } elseif ($part[2] === null) {
-                        $regex .= '(' . $groupName . '[^/]+)';
-                    } else {
-                        $regex .= '(' . $groupName . '[^' . $part[2] . ']+)';
-                    }
-                    $this->paramMap['param' . $groupIndex++] = $part[1];
-                    break;
-                case 'optional':
-                    $regex .= '(?:' . $this->buildRegex($part[1], $constraints, $groupIndex) . ')?';
-                    break;
-            }
-        }
-        return $regex;
     }
 
     public function setAction($action): Route {
@@ -250,9 +146,9 @@ class Route implements RouteInterface {
     /**
      * Get regex
      *
-     * @return string
+     * @return array
      */
-    public function getRegex(): string {
+    public function getRegex(): array {
         return $this->regex;
     }
 
@@ -264,7 +160,6 @@ class Route implements RouteInterface {
      * @return bool
      */
     public function match(string $path, $basePath = null) {
-        $regex = '(^' . $this->regex . '$)';
         if ($basePath !== null) {
             $length = strlen($basePath);
             if (substr($path, 0, $length) !== $basePath) {
@@ -272,18 +167,14 @@ class Route implements RouteInterface {
             }
             $path = substr($path, $length);
         }
-        $result = (bool) preg_match($regex, $path, $matches, 0, (int) $basePath);
-        $this->params = [];
-        if ($result) {
-            $params = [];
-            foreach ($matches as $name => $value) {
-                if (isset($this->paramMap[$name])) {
-                    $params[$this->paramMap[$name]] = $value;
-                }
-            }
-            $this->params = array_merge($this->defaults, $params);
+        $match = RouteRegex::match($path, $this->regex);
+        if (empty($match)) {
+            return false;
         }
-        return $result;
+        $this->params = array_merge(
+            $this->defaults, $match['parameters']
+        );
+        return true;
     }
 
     /**
@@ -304,53 +195,6 @@ class Route implements RouteInterface {
         return in_array($request->method(), $this->methods);
     }
 
-    public function assemble(array $params = []): string {
-        $parts = $this->parts;
-        $merged = array_merge($this->defaults, $params);
-        $path = $this->buildPath($parts, $merged);
-        $this->params = $merged;
-        return $path;
-    }
-    /**
-     * Build path
-     *
-     * @param array $parts
-     * @param array $params
-     * @param boolean $optional
-     * @return string
-     * @throws Exception
-     */
-    protected function buildPath(array $parts, array $params, $optional = false) {
-        $path = '';
-        foreach ($parts as $part) {
-            switch ($part[0]) {
-                case 'literal':
-                    $path .= $part[1];
-                    break;
-                case 'parameter':
-                    if (!isset($params[$part[1]])) {
-                        if (!$optional) {
-                            throw new Exception(
-                                __('Missing parameter "{name}"', [
-                                    'name' => $path[1]
-                                ])
-                            );
-                        }
-                        return '';
-                    }
-                    $path .= rawurlencode($params[$part[1]]);
-                    break;
-                case 'optional':
-                    $segment = $this->buildPath($part[1], $params, true);
-                    if ($segment !== '') {
-                        $path .= $segment;
-                    }
-                    break;
-            }
-        }
-        return $path;
-    }
-
     protected function prepareHandle(HttpContext $context) {
         if (isset($this->constraints['module_path'])) {
             $context['module_path'] = $this->constraints['module_path'];
@@ -364,32 +208,6 @@ class Route implements RouteInterface {
         }
     }
 
-    protected function invokeRoute(string $cls, string $action, array $parameters) {
-        $instance = new $cls();
-        if (method_exists($instance, 'init')) {
-            $instance->init();
-        }
-        $actionName = Str::lastReplace($action, config('app.action'));
-        if (true !==
-            ($arg = $instance->canInvoke($actionName))) {
-            return $arg;
-        }
-        $instance->setAction($actionName);
-        $instance->prepare();
-        $arguments = [];
-        foreach ($parameters as $item) {
-            if ($item['type'] === 'string') {
-                $item = '';
-            }
-        }
-        $result = call_user_func_array(
-            array($this, $action),
-            $arguments
-        );
-        $instance->finalize();
-        return $result;
-    }
-
     public function handle(HttpContext $context) {
         $this->prepareHandle($context);
         if (isset($this->constraints[Router::MODULE])) {
@@ -401,7 +219,7 @@ class Route implements RouteInterface {
             ->then(function (HttpContext $context) {
                 $context['request']->append($this->params());
                 if (is_callable($this->action)) {
-                    return call_user_func($this->action, $context);
+                    return BoundMethod::call($this->action, $context, $this->params());
                 }
                 return $this->invokeRegisterAction($this->action, $context);
             });
@@ -429,19 +247,43 @@ class Route implements RouteInterface {
         return BoundMethod::call([$instance, $action], $context, $this->params());
     }
 
-    protected static function getViewFolder($module, $controller): string {
-        $pattern = '.*?Service.(.+)';
-        return preg_replace('/^'.$pattern.'$/', '$1', get_class($controller)).'/';
-    }
 
-    public static function refreshDefaultView(HttpContext $context) {
+
+    /**
+     * 刷新页面数据
+     * @param HttpContext $context
+     * @param bool $usePrefix 是否使用设置的后缀
+     */
+    public static function refreshDefaultView(HttpContext $context, bool $usePrefix = false) {
         /** @var ViewFactory $view */
         $view = $context['view'];
         if (isset($context['view_base'])) {
             $view->setDirectory($context['view_base']);
         }
         $context['view_controller_path'] = static::getViewFolder(isset($context['module'])
-            ? $context['module'] : null, $context['controller']);
+            ? $context['module'] : null, $context['controller'], $usePrefix);
         $view->setDefaultFile($context['view_controller_path'].$context['action']);
+    }
+
+    /**
+     * 获取控制所在的ui路径
+     * @param $module
+     * @param $controller
+     * @param bool $usePrefix
+     * @return string
+     * @throws Exception
+     */
+    protected static function getViewFolder($module, $controller, bool $usePrefix = false): string {
+        $cls = get_class($controller);
+        $prefix = config('app.controller');
+        if (!empty($prefix)) {
+            $cls = preg_replace('/'. $prefix .'$/', '', $cls);
+        }
+        if (!$usePrefix || !empty($module)) {
+            $pattern = '.*?Service.(.+)';
+        } else {
+            $pattern = '.*?Service.'.app('app.module').'.(.*)';
+        }
+        return preg_replace('/^'.$pattern.'$/', '$1', $cls).'/';
     }
 }
