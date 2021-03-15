@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Zodream\Route;
 
 use Exception;
+use Zodream\Infrastructure\Contracts\Http\Input;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Contracts\Route as RouteInterface;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
@@ -13,6 +14,8 @@ use Zodream\Route\Controller\Module;
  * @package Zodream\Route
  */
 class StaticRoute implements RouteInterface {
+
+    protected ?array $regexMatched = null;
 
     public function __construct(
         protected string $controller,
@@ -25,6 +28,16 @@ class StaticRoute implements RouteInterface {
     )
     {
 
+    }
+
+    /**
+     * 设置匹配过的数据，不用重复匹配
+     * @param array $match
+     * @return $this
+     */
+    public function matched(array $match) {
+        $this->regexMatched = $match;
+        return $this;
     }
 
     public function middleware(...$middlewares): RouteInterface
@@ -55,10 +68,33 @@ class StaticRoute implements RouteInterface {
         $context['controller'] = $instance;
         $context['action'] = $this->action;
         Route::refreshDefaultView($context, true);
-        return BoundMethod::call([$instance, $this->action], $context, $parameters);
+        return $this->call([$instance, $this->action], $context['request'], $parameters);
+    }
+
+    protected function call($callback, Input $input, array $parameters = []) {
+        $items = [];
+        foreach ($this->parameters as $item) {
+            if (array_key_exists($item['name'], $parameters)) {
+                $items[] = BoundMethod::formatValue($item['type'], $parameters[$item['name']]);
+                continue;
+            }
+            if ($input->has($item['name'])) {
+                $items[] = BoundMethod::formatValue($item['type'], $input->get($item['name']));
+                continue;
+            }
+            if (isset($item['default'])) {
+                $items[] = $item['default'];
+                continue;
+            }
+            throw new Exception(sprintf('parameter [%s] do not have default value', $item['name']));
+        }
+        return call_user_func_array($callback, $items);
     }
 
     protected function getParameter(HttpContext $context) {
+        if (is_array($this->regexMatched)) {
+            return $this->regexMatched;
+        }
         if (empty($this->regex)
             || !isset($this->regex['parameters'])
             || empty($this->regex['parameters'])) {

@@ -228,4 +228,8 @@ class Router implements RouterInterface {
                 return $context->make(ModuleRoute::class);
             });
     }
+
+    public function cachePath(): string {
+        return (string)app_path('data/cache_routes.php');
+    }
 }

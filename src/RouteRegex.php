@@ -25,6 +25,9 @@ class RouteRegex {
      * ]
      */
     public static function parse(string $definition): array {
+        if (empty($definition)) {
+            return ['regex' => $definition];
+        }
         $matchedParameter = [];
         $matchedPattern = [];
         $result = preg_replace_callback('/\/\{([a-z-0-9@]+)\}\??((:\(?[^\/]+\)?)?)/i', function ($match) use (&$matchedParameter, &$matchedPattern) {
@@ -83,4 +86,18 @@ class RouteRegex {
         return compact('path', 'parameters');
     }
 
+    /**
+     * 把模块路径加入到匹配规则中去
+     * @param array $regex
+     * @param array $module
+     * @return array
+     */
+    public static function buildModule(array $regex, array $module): array {
+        if (empty($module)) {
+            return $regex;
+        }
+        $path = array_keys($module);
+        $regex['regex'] = ltrim(implode('/', $path) . '/'.$regex['regex']);
+        return $regex;
+    }
 }

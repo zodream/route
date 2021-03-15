@@ -254,7 +254,7 @@ class RouteCompiler {
 //                'regex' => [],
 //                'controller' => '',
 //                'action' => '',
-//                'parameters' => [],
+//                'parameters' => [['name' => '', 'type' => '', 'default' => '']],
 //                'middlewares' => [],
 //                'module' => [],
 //            ];
@@ -277,24 +277,36 @@ class RouteCompiler {
         if (isset($routes[0][$method][$path])) {
             return $this->toRoute($routes[0][$method][$path]);
         }
-        if (!isset($routes[1][$method])) {
+        if (isset($routes[0]['any'][$path])) {
+            return $this->toRoute($routes[0]['any'][$path]);
+        }
+        $route = $this->matchRegex($method, $path, $routes[1]);
+        if (!empty($route)) {
+            return $route;
+        }
+        return $this->matchRegex('any', $path, $routes[1]);
+    }
+
+    protected function matchRegex(string $method, string $path, array $routes): ?RouteInterface {
+        if (!isset($routes[$method])) {
             return null;
         }
-        foreach ($routes[1][$method] as $route) {
-            $match = RouteRegex::match($path, $route['regex']);
+        foreach ($routes[$method] as $route) {
+            $match = RouteRegex::match($path, RouteRegex::buildModule($route['regex'],
+                isset($route['module']) ? $route['module'] : []));
             if (empty($match)) {
                 continue;
             }
-            return $this->toRoute($route);
+            return $this->toRoute($route)->matched($match);
         }
         return null;
     }
 
-    public function toRoute(array $route) {
+    public function toRoute(array $route): RouteInterface {
         return new StaticRoute(
             $route['controller'],
             $route['action'],
-            $route['regex'],
+            isset($route['path']) ? RouteRegex::parse($route['path']) : $route['regex'],
             $route['parameters'],
             isset($route['middlewares']) ? $route['middlewares'] : [],
             isset($route['module']) ? $route['module'] : [],
