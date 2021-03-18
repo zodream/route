@@ -125,7 +125,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         if (is_null($search) && $url == '/') {
             return true;
         }
-        return strpos($url, '/'.trim($search, '/')) !== false;
+        return str_contains($url, '/' . trim($search, '/'));
     }
 
     /**
