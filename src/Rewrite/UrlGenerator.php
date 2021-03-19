@@ -50,6 +50,9 @@ class UrlGenerator extends Generator {
             return ['', $args];
         }
         $ext = config('route.rewrite');
+        if (!is_string($ext)) {
+            $ext = '';
+        }
         if (!empty($ext) && str_contains($path, $ext)) {
             return [
                 $path,

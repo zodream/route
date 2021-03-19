@@ -46,6 +46,10 @@ class UrlGenerator implements UrlGeneratorInterface {
         $this->modulePath = $modulePath;
     }
 
+    public function getModulePath(): string {
+        return $this->modulePath;
+    }
+
     public function setRequest(Input $request)
     {
         $this->request = $request;

@@ -82,10 +82,11 @@ class ModuleRoute implements RouteInterface {
         if (!is_callable($handle)) {
             return $newModule;
         }
-        $oldGlobalModule = url()->getModulePath();
-        url()->setModulePath($newModule[0]);
+        $instance = url();
+        $oldGlobalModule = $instance->getModulePath();
+        $instance->setModulePath($newModule[0]);
         $res = call_user_func_array($handle, $newModule);
-        url()->setModulePath($oldGlobalModule);
+        $instance->setModulePath($oldGlobalModule);
         return $res;
     }
 
