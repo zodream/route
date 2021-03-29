@@ -112,8 +112,8 @@ class RequestMiddleware implements MiddlewareInterface {
             in_array($method, $methods[$action]);
     }
 
-    protected function renderRedirectAuth(HttpContext $context, string $message = '') {
-        return $this->renderResponse($context, $message, 401, url(config('auth.home'), ['redirect_uri' => $context['request']->url()]));
+    protected function renderRedirectAuth(HttpContext $context, string $message = 'Please Login User!') {
+        return $this->renderResponse($context, __($message), 401, url(config('auth.home'), ['redirect_uri' => $context['request']->url()]));
     }
 
     protected function renderResponse(HttpContext $context, string $message, int $code = 404, string $url = '') {
