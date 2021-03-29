@@ -8,28 +8,9 @@ use Zodream\Route\UrlGenerator as Generator;
 
 class UrlGenerator extends Generator {
 
-    protected bool $rewritable = true;
-
-    public function to($path, $extra = [], $secure = null): string
+    protected function formatUrl($url, bool $encode = true): string
     {
-        if (is_bool($extra)) {
-            $secure = $extra;
-            $extra = null;
-        }
-        $rewritable = !is_bool($secure) || $secure;
-        if (!$rewritable) {
-            $this->rewritable = false;
-        }
-        $url = parent::to($path, $extra, is_bool($secure) ? null : $secure);
-        if (!$this->rewritable) {
-            $this->rewritable = true;
-        }
-        return $url;
-    }
-
-    protected function formatUrl($url): string
-    {
-        if ($this->rewritable && $url instanceof Uri) {
+        if ($encode && $url instanceof Uri) {
             list($path, $data) = $this->enRewrite($url->getPath(), $url->getData());
             $url->setPath($path)->setData($data);
         }

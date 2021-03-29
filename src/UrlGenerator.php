@@ -79,13 +79,13 @@ class UrlGenerator implements UrlGeneratorInterface {
         return (string)$this->to('/');
     }
 
-    public function to($path, $extra = [], $secure = null): string
+    public function to($path, $extra = [], $secure = null, bool $encode = true): string
     {
         if ($path instanceof Uri && empty($extra) && !empty($path->getHost())) {
             return (string)$path;
         }
         $uri = $this->toRealUri($path, $extra, $secure);
-        return $this->formatUrl($uri);
+        return $this->formatUrl($uri, $encode);
     }
 
     public function secure($path, $parameters = []): string
@@ -156,7 +156,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $root;
     }
 
-    protected function formatUrl($url): string {
+    protected function formatUrl($url, bool $encode = true): string {
         return (string)$url;
     }
 
