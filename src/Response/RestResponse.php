@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Zodream\Route\Response;
 
+use Zodream\Helpers\Arr;
 use Zodream\Helpers\Json;
 use Zodream\Helpers\Str;
 use Zodream\Helpers\Xml;
@@ -161,6 +162,10 @@ class RestResponse implements PreResponse, Output {
 
     public function __toString() {
         return $this->text();
+    }
+
+    public function toArray() {
+        return Arr::toArray($this->data);
     }
 
     public function send()

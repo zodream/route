@@ -109,7 +109,7 @@ class RequestMiddleware implements MiddlewareInterface {
         $methods = $controller->methods();
         $method = $context['request']->method();
         return !isset($methods[$action]) ||
-            in_array($method, $methods[$action]);
+            in_array($method, (array)$methods[$action]);
     }
 
     protected function renderRedirectAuth(HttpContext $context, string $message = 'Please Login User!') {
