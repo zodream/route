@@ -33,9 +33,14 @@ class UrlGenerator implements UrlGeneratorInterface {
     public function __construct(HttpContext $context)
     {
         $this->container = $context;
+        $this->sync();
+    }
+
+    public function sync()
+    {
         $this->setRequest($this->container->make('request'));
-        $this->modulePrefix = Str::unStudly($context->make('app.module') ?: 'home');
-        $this->setModulePath($context->make('module_path') ?: '');
+        $this->modulePrefix = Str::unStudly($this->container->make('app.module') ?: 'home');
+        $this->setModulePath($this->container->make('module_path') ?: '');
     }
 
     /**
@@ -82,7 +87,7 @@ class UrlGenerator implements UrlGeneratorInterface {
     public function to($path, $extra = [], $secure = null, bool $encode = true): string
     {
         if ($path instanceof Uri && empty($extra) && !empty($path->getHost())) {
-            return (string)$path;
+            return $this->formatUrl($path);
         }
         $uri = $this->toRealUri($path, $extra, $secure);
         return $this->formatUrl($uri, $encode);
@@ -110,6 +115,19 @@ class UrlGenerator implements UrlGeneratorInterface {
     public function action($action, $parameters = [], $absolute = true): string
     {
         return '';
+    }
+
+    public function decode(string $url = ''): Uri
+    {
+        if (empty($url)) {
+            return clone $this->uri;
+        }
+        return new Uri($url);
+    }
+
+    public function encode(Uri $url): Uri
+    {
+        return $url;
     }
 
     public function formatScheme($secure = null): string
@@ -157,7 +175,10 @@ class UrlGenerator implements UrlGeneratorInterface {
     }
 
     protected function formatUrl($url, bool $encode = true): string {
-        return (string)$url;
+        if (!$encode || !($url instanceof Uri)) {
+            return (string)$url;
+        }
+        return (string)$this->encode($url);
     }
 
     protected function removeIndex(string $root): string {
@@ -285,10 +306,10 @@ class UrlGenerator implements UrlGeneratorInterface {
         if (!empty(parse_url($path, PHP_URL_HOST))) {
             return $path;
         }
-        if (strpos($path, '//') !== false) {
+        if (str_contains($path, '//')) {
             $path = preg_replace('#/+#', '/', $path);
         }
-        if (strpos($path, './') === 0) {
+        if (str_starts_with($path, './')) {
             return $this->addModulePath(substr($path, 2));
         }
         return $path;
@@ -317,7 +338,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         if ($prefix === $path) {
             return '';
         }
-        if (strpos($path, $prefix.'/') === 0) {
+        if (str_starts_with($path, $prefix . '/')) {
             return substr($path, strlen($prefix) + 1);
         }
         return substr($path, 1);

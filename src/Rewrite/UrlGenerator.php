@@ -8,13 +8,17 @@ use Zodream\Route\UrlGenerator as Generator;
 
 class UrlGenerator extends Generator {
 
-    protected function formatUrl($url, bool $encode = true): string
+    public function encode(Uri $url): Uri
     {
-        if ($encode && $url instanceof Uri) {
-            list($path, $data) = $this->enRewrite($url->getPath(), $url->getData());
-            $url->setPath($path)->setData($data);
-        }
-        return (string)$url;
+        list($path, $params) = $this->enRewrite($url->getPath(), $url->getData());
+        return $url->setPath($path)->setData($params);
+    }
+
+    public function decode(string $url = ''): Uri
+    {
+        $uri = parent::decode($url);
+        list($path, $params) = $this->deRewrite($uri->getPath());
+        return $uri->setPath($path)->addData($params);
     }
 
     /**
@@ -86,5 +90,73 @@ class UrlGenerator extends Generator {
             sprintf('%s/%s%s', $path, $spilt, $ext),
             []
         ];
+    }
+
+    /**
+     * 解析重写
+     * @param $path
+     * @return array
+     */
+    public function deRewrite($path) {
+        if (empty($path)) {
+            return ['', []];
+        }
+        $path = trim($path, '/');
+        if (empty($path)) {
+            return ['', []];
+        }
+        $ext = config('route.rewrite');
+        if (!empty($ext)) {
+            $path = Str::lastReplace($path, $ext);
+        }
+        if (empty($path)) {
+            return ['', []];
+        }
+        list($path, $data) = $this->spiltArrayByNumber(explode('/', $path));
+        return [
+            implode('/', $path),
+            $data
+        ];
+    }
+
+    /**
+     * 根据数字值分割数组
+     * @param array $routes
+     * @return array (routes, values)
+     */
+    private function spiltArrayByNumber(array $routes): array {
+        $values = array();
+        for ($i = 0, $len = count($routes); $i < $len; $i++) {
+            if (!is_numeric($routes[$i])) {
+                continue;
+            }
+            if ($i < $len - 1 && ($len - $i) % 2 === 1) {
+                // 数字作为分割符,无意义
+                $values = array_splice($routes, $i + 1);
+                unset($routes[$i]);
+            } else {
+                $values = array_splice($routes, $i - 1);
+            }
+            break;
+        }
+        return array(
+            $routes,
+            $this->pairValues($values)
+        );
+    }
+
+    /**
+     * 将索引数组根据奇偶转关联数组
+     * @param $values
+     * @return array
+     */
+    private function pairValues($values): array {
+        $args = array();
+        for ($i = 0, $len = count($values); $i < $len; $i += 2) {
+            if (isset($values[$i + 1])) {
+                $args[$values[$i]] = $values[$i + 1];
+            }
+        }
+        return $args;
     }
 }

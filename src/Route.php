@@ -265,6 +265,7 @@ class Route implements RouteInterface {
         $context['view_controller_path'] = static::getViewFolder(isset($context['module'])
             ? $context['module'] : null, $context['controller'], $usePrefix);
         $view->setDefaultFile($context['view_controller_path'].$context['action']);
+        url()->sync();
     }
 
     /**
