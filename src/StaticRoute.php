@@ -8,6 +8,7 @@ use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Contracts\Route as RouteInterface;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
 use Zodream\Route\Controller\Module;
+use Zodream\Route\Exception\ModuleException;
 
 /**
  * 静态路由
@@ -114,7 +115,7 @@ class StaticRoute implements RouteInterface {
         foreach ($this->module as $path => $module) {
             $instance = ModuleRoute::moduleInstance($module, $context);
             if (!$instance instanceof Module) {
-                throw new Exception(sprintf('[%s] is not Module::class', $module));
+                throw new ModuleException(sprintf('[%s] is not Module::class', $module));
             }
             $context['module'] = $instance;
             $context['module_path'] = $path;

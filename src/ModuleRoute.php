@@ -10,7 +10,9 @@ use Zodream\Infrastructure\Contracts\Route as RouteInterface;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
 use Zodream\Route\Controller\Controller;
 use Zodream\Route\Controller\Module;
-use Zodream\Template\ViewFactory;
+use Zodream\Route\Exception\ControllerException;
+use Zodream\Route\Exception\ModuleException;
+use Zodream\Route\Exception\NotFoundHttpException;
 
 class ModuleRoute implements RouteInterface {
 
@@ -164,7 +166,7 @@ class ModuleRoute implements RouteInterface {
             $class .= config('app.controller');
         }
         if (!class_exists($class)) {
-            throw new Exception($class.
+            throw new ControllerException($class.
                 __(' class no exist!'));
         }
         return $this->invokeClass($class, $action, $context, $vars);
@@ -282,7 +284,7 @@ class ModuleRoute implements RouteInterface {
         if (class_exists($class)) {
             return [$class, lcfirst($action)];
         }
-        throw new Exception(
+        throw new NotFoundHttpException(
             sprintf(__('UNKNOWN URI: %s, Will Invoke: %s::%s'), request()->url(), $class, $action)
         );
     }
@@ -295,7 +297,7 @@ class ModuleRoute implements RouteInterface {
         if (class_exists($module)) {
             return BoundMethod::newClass($module, $context);
         }
-        throw new Exception($module.
+        throw new ModuleException($module.
             __(' Module no exist!'));
     }
 

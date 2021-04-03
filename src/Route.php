@@ -8,6 +8,8 @@ use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Contracts\Route as RouteInterface;
 use Zodream\Route\Controller\Module;
+use Zodream\Route\Exception\ControllerException;
+use Zodream\Route\Exception\ModuleException;
 use Zodream\Template\ViewFactory;
 
 class Route implements RouteInterface {
@@ -228,7 +230,7 @@ class Route implements RouteInterface {
     public function invokeModule($module, HttpContext $context) {
         $instance = ModuleRoute::moduleInstance($module, $context);
         if (!$instance instanceof Module) {
-            throw new Exception(sprintf('[%s] is not Module::class', $module));
+            throw new ModuleException(sprintf('[%s] is not Module::class', $module));
         }
         $context['module'] = $instance;
         $instance->boot();
@@ -238,7 +240,7 @@ class Route implements RouteInterface {
     protected function invokeRegisterAction($arg, HttpContext $context) {
         list($class, $action) = explode('@', $arg);
         if (!class_exists($class)) {
-            throw new Exception(sprintf('[%s] is not found', $arg));
+            throw new ControllerException(sprintf('[%s] is not found', $arg));
         }
         $instance = BoundMethod::newClass($class, $context);
         $context['controller'] = $instance;
