@@ -194,7 +194,7 @@ class UrlGenerator implements UrlGeneratorInterface {
     }
 
     public function isSpecialUrl(string $path): bool  {
-        return $path == '#' || strpos($path, 'javascript:') === 0;
+        return str_starts_with($path, '#') || str_starts_with($path, 'javascript:');
     }
 
     public function useCustomScript($script = 'index.php') {
