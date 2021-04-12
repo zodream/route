@@ -54,8 +54,8 @@ class BoundMethod extends BaseBound {
             'int' => intval($value),
             'float' => floatval($value),
             'double' => doubleval($value),
-            'bool' => (is_numeric($value) && $value > 0) || (is_bool($value) && $value)
-                || (is_string($value) && strtolower($value) === 'true') || !empty($value),
+            'bool' => ((is_numeric($value) && $value > 0) || (is_bool($value) && $value)
+                || (is_string($value) && strtolower($value) === 'true')) && !empty($value),
             default => $value
         };
     }
