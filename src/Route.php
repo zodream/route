@@ -58,7 +58,7 @@ class Route implements RouteInterface {
      */
     public function __construct(
         string $definition,
-        $action,
+        callable|string $action,
         array $methods = self::HTTP_METHODS,
         array $constraints = [],
         array $defaults = []) {
@@ -81,11 +81,11 @@ class Route implements RouteInterface {
                 __('Missing "definition" config option.')
             );
         }
-        $action = isset($config['action']) ? $config['action'] : $config['definition'];
+        $action = $config['action'] ?? $config['definition'];
         $definition = $config['definition'];
-        $constraints = isset($config['constraints']) ? $config['constraints'] : [];
-        $defaults = isset($config['defaults']) ? $config['defaults'] : [];
-        $methods = isset($config['methods']) ? $config['methods'] : true;
+        $constraints = $config['constraints'] ?? [];
+        $defaults = $config['defaults'] ?? [];
+        $methods = $config['methods'] ?? true;
         return new static($definition, $action, $methods,  $constraints, $defaults);
     }
 
@@ -157,11 +157,11 @@ class Route implements RouteInterface {
     /**
      * Match
      *
-     * @param $path
-     * @param int $basePath
+     * @param string $path
+     * @param string|null $basePath
      * @return bool
      */
-    public function match(string $path, $basePath = null) {
+    public function match(string $path, ?string $basePath = null) {
         if ($basePath !== null) {
             $length = strlen($basePath);
             if (substr($path, 0, $length) !== $basePath) {
@@ -262,8 +262,7 @@ class Route implements RouteInterface {
         if (isset($context['view_base'])) {
             $view->setDirectory($context['view_base']);
         }
-        $context['view_controller_path'] = static::getViewFolder(isset($context['module'])
-            ? $context['module'] : null, $context['controller'], $usePrefix);
+        $context['view_controller_path'] = static::getViewFolder($context['module'] ?? null, $context['controller'], $usePrefix);
         $view->setDefaultFile($context['view_controller_path'].$context['action']);
         url()->sync();
     }

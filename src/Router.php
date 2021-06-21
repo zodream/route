@@ -48,7 +48,7 @@ class Router implements RouterInterface {
                     self::BEFORE => 1
                 ]));
         $newPrefix = isset($filters[self::PREFIX]) ? trim($filters[self::PREFIX], '/') : '';
-        $newPackage = isset($filters[self::PACKAGE]) ? $filters[self::PACKAGE] : '';
+        $newPackage = $filters[self::PACKAGE] ?? '';
         $this->globalRoutePrefix = $this->addPrefix($newPrefix);
         $this->globalRoutePackage = $this->addPackage($newPackage);
         $this->loadRoutes($callback);
