@@ -111,9 +111,14 @@ class ModuleRoute implements RouteInterface {
         $module->boot();
         $context['view_base'] = $module->getViewPath();
         // 允许模块内部进行自定义路由解析
-        if (method_exists($module, 'invokeRoute')
-            && ($response = $module->invokeRoute($path, $context))) {
-            return $response;
+        if (method_exists($module, 'invokeRoute')) {
+            $res = $module->invokeRoute(ltrim($path, '/'), $context);
+            if ($res instanceof Output) {
+                return $res;
+            }
+            if (is_string($res)) {
+                $path = $res;
+            }
         }
         $baseName = $module->getControllerNamespace();
         return $this->invokePath($path, $baseName, $context);

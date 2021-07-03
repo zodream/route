@@ -187,8 +187,6 @@ class Router implements RouterInterface {
         return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
     }
 
-
-
     public function middleware(...$middlewares): RouterInterface {
         $this->middlewares = array_merge($this->middlewares, $middlewares);
         return $this;

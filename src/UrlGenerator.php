@@ -7,6 +7,8 @@ use Zodream\Http\Uri;
 use Zodream\Infrastructure\Contracts\Http\Input;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Contracts\UrlGenerator as UrlGeneratorInterface;
+use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
+use Zodream\Route\Rewrite\URLEncoder;
 
 class UrlGenerator implements UrlGeneratorInterface {
 
@@ -29,11 +31,18 @@ class UrlGenerator implements UrlGeneratorInterface {
      */
     protected $uri;
     protected $useScript = false;
+    /**
+     * @var URLEncoder[]
+     */
+    protected array $encoders = [];
+    protected MiddlewareProcessor $processor;
 
     public function __construct(HttpContext $context)
     {
+        $this->processor = new MiddlewareProcessor($context);
         $this->container = $context;
         $this->sync();
+        $this->loadMiddleware();
     }
 
     public function sync()
@@ -79,9 +88,9 @@ class UrlGenerator implements UrlGeneratorInterface {
             return $referrer;
         }
         if ($fallback) {
-            return (string)$this->to($fallback);
+            return $this->to($fallback);
         }
-        return (string)$this->to('/');
+        return $this->to('/');
     }
 
     public function to($path, $extra = [], $secure = null, bool $encode = true): string
@@ -119,15 +128,17 @@ class UrlGenerator implements UrlGeneratorInterface {
 
     public function decode(string $url = ''): Uri
     {
-        if (empty($url)) {
-            return clone $this->uri;
+        $uri = clone $this->uri;
+        if (!empty($url)) {
+            $uri->setData([])
+                ->setFragment('')->decode($url);
         }
-        return new Uri($url);
+        return $this->invokeMiddleware($uri, 'decode');
     }
 
     public function encode(Uri $url): Uri
     {
-        return $url;
+        return $this->invokeMiddleware($url, 'encode');
     }
 
     public function formatScheme($secure = null): string
@@ -342,5 +353,28 @@ class UrlGenerator implements UrlGeneratorInterface {
             return substr($path, strlen($prefix) + 1);
         }
         return substr($path, 1);
+    }
+
+    /**
+     * 执行中间件
+     * @param Uri $source
+     * @param string $action
+     * @return Uri
+     */
+    protected function invokeMiddleware(Uri $source, string $action) {
+        return $this->processor->send($source)->via($action)->thenReturn();
+    }
+
+    private function loadMiddleware()
+    {
+        $items = [];
+        $encoders = array_merge($this->encoders, (array)config('route.encoders'));
+        foreach ($encoders as $item) {
+            if (isset($items[$item]) || empty($item)) {
+                continue;
+            }
+            $items[$item] = $this->container->make($item);
+        }
+        $this->processor->through(array_values($items));
     }
 }
