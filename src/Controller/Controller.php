@@ -78,8 +78,8 @@ abstract class Controller {
      */
     public function forward(
         $controller,
-        $actionName = 'index',
-        $parameters = []
+        string $actionName = 'index',
+        array $parameters = []
     ) {
         if (is_string($controller)) {
             $controller = new $controller;
