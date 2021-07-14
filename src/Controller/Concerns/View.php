@@ -2,12 +2,12 @@
 declare(strict_types=1);
 namespace Zodream\Route\Controller\Concerns;
 
+use Zodream\Disk\File;
 use Zodream\Infrastructure\Contracts\Http\Output;
-use Zodream\Infrastructure\Contracts\HttpContext;
 
 trait View {
 
-    public $layout = false;
+    public File|string $layout = '';
 
     public function viewFactory() {
         return view();
@@ -74,7 +74,8 @@ trait View {
         return $html;
     }
 
-    protected function findLayoutFile() {
+    protected function findLayoutFile(): string|File
+    {
         return $this->layout;
     }
 
