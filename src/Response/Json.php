@@ -84,7 +84,7 @@ class Json implements JsonResponse {
      * @return Output
      * @throws \Exception
      */
-    public function renderResponse($data, $type = 'json'): Output {
+    public function renderResponse($data, string $type = 'json'): Output {
         $response = response();
         switch (strtolower($type)) {
             case 'xml':

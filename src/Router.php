@@ -18,25 +18,25 @@ class Router implements RouterInterface {
     const BEFORE = 'before';
     const AFTER = 'after';
 
-    protected $middlewares = [];
+    protected array $middlewares = [];
 
     /**
      * @var array
      */
-    protected $globalFilters = [];
+    protected array $globalFilters = [];
     /**
      * @var
      */
-    protected $globalRoutePrefix;
+    protected string $globalRoutePrefix = '';
 
-    protected $globalRoutePackage;
-    protected $globalRouteMiddleware;
+    protected string $globalRoutePackage = '';
+    protected array $globalRouteMiddleware = [];
     /**
      * @var Route[]
      */
-    protected $staticRouteMap = [];
+    protected array $staticRouteMap = [];
 
-    public function group(array $filters, $callback): RouterInterface {
+    public function group(array $filters, mixed $cb): RouterInterface {
         $oldGlobalFilters = $this->globalFilters;
         $oldGlobalPrefix = $this->globalRoutePrefix;
         $oldGlobalPackage = $this->globalRoutePackage;
@@ -51,7 +51,7 @@ class Router implements RouterInterface {
         $newPackage = $filters[self::PACKAGE] ?? '';
         $this->globalRoutePrefix = $this->addPrefix($newPrefix);
         $this->globalRoutePackage = $this->addPackage($newPackage);
-        $this->loadRoutes($callback);
+        $this->loadRoutes($cb);
         $this->globalFilters = $oldGlobalFilters;
         $this->globalRoutePrefix = $oldGlobalPrefix;
         $this->globalRoutePackage = $oldGlobalPackage;
@@ -84,8 +84,8 @@ class Router implements RouterInterface {
 
     /**
      * 手动注册路由
-     * @param $method
-     * @param $uri
+     * @param array $method
+     * @param string $uri
      * @param $action
      * @return Route
      */
@@ -101,11 +101,11 @@ class Router implements RouterInterface {
         return $route;
     }
 
-    public function get($uri, $action = null): RouteInterface {
+    public function get(string $uri, mixed $action = null): RouteInterface {
         return $this->addRoute(['GET', 'HEAD'], $uri, $action);
     }
 
-    public function head($uri, $action = null): RouteInterface {
+    public function head(string $uri, mixed $action = null): RouteInterface {
         return $this->addRoute(['HEAD'], $uri, $action);
     }
 
@@ -116,7 +116,7 @@ class Router implements RouterInterface {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function post($uri, $action = null): RouteInterface {
+    public function post(string $uri, mixed $action = null): RouteInterface {
         return $this->addRoute(['POST'], $uri, $action);
     }
 
@@ -127,7 +127,7 @@ class Router implements RouterInterface {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function put($uri, $action = null): RouteInterface {
+    public function put(string $uri, mixed $action = null): RouteInterface {
         return $this->addRoute(['PUT'], $uri, $action);
     }
 
@@ -138,7 +138,7 @@ class Router implements RouterInterface {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function patch($uri, $action = null): RouteInterface {
+    public function patch(string $uri, mixed $action = null): RouteInterface {
         return $this->addRoute(['PATCH'], $uri, $action);
     }
 
@@ -149,7 +149,7 @@ class Router implements RouterInterface {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function delete($uri, $action = null): RouteInterface {
+    public function delete(string $uri, mixed $action = null): RouteInterface {
         return $this->addRoute(['DELETE'], $uri, $action);
     }
 
@@ -160,7 +160,7 @@ class Router implements RouterInterface {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function options($uri, $action = null): RouteInterface {
+    public function options(string $uri, mixed $action = null): RouteInterface {
         return $this->addRoute(['OPTIONS'], $uri, $action);
     }
 
@@ -171,7 +171,7 @@ class Router implements RouterInterface {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function any($uri, $action = null): RouteInterface {
+    public function any(string $uri, mixed $action = null): RouteInterface {
         return $this->addRoute(Route::HTTP_METHODS, $uri, $action);
     }
 
@@ -183,7 +183,7 @@ class Router implements RouterInterface {
      * @param  \Closure|array|string|null  $action
      * @return Route
      */
-    public function match($methods, $uri, $action = null): RouteInterface {
+    public function match(array|string $methods, string $uri, mixed $action = null): RouteInterface {
         return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
     }
 

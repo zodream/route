@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Zodream\Route\Controller;
 
 use BadMethodCallException;
+use Closure;
 use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Support\BoundMethod;
@@ -32,11 +33,11 @@ abstract class Controller {
     /**
      * Register middleware on the controller.
      *
-     * @param \Closure|array|string $middleware
+     * @param Closure|array|string $middleware
      * @param array $options
      * @return static
      */
-    public function middleware($middleware, array $options = [])
+    public function middleware(Closure|array|string $middleware, array $options = [])
     {
         foreach ((array) $middleware as $m) {
             $this->middleware[] = [

@@ -21,57 +21,54 @@ trait View {
      * @return static
      * @throws \Exception
      */
-    public function send($key, $value = null) {
+    public function send(string|array $key, mixed $value = null) {
         $this->viewFactory()->set($key, $value);
         return $this;
     }
 
-    public function show($name = null, $data = []) {
+    public function show(string|array $name = '', array $data = []) {
         timer('view render');
         return $this->showContent($this->renderHtml($name, $data));
     }
 
     /**
      * 根据 pjax 自定义数据
-     * @param null $name
-     * @param null $data
-     * @param null $layout_callback
+     * @param string|array $name
+     * @param array $data
+     * @param callable|null $layoutCallback
      * @return Output
-     * @throws \Exception
      */
-    public function renderIfPjax($name = null, $data = null, $layout_callback = null) {
+    public function renderIfPjax(string|array $name = '', array $data = [], ?callable $layoutCallback = null) {
         if (is_array($name)) {
-            list($data, $layout_callback, $name) = [$name, $data, null];
+            list($data, $layoutCallback, $name) = [$name, $data, null];
         }
         if (empty($data)) {
             $data = [];
         }
-        if (!$this->httpContext('request')->isPjax() && is_callable($layout_callback)) {
-            $data = array_merge($data, call_user_func($layout_callback));
+        if (!$this->httpContext('request')->isPjax() && is_callable($layoutCallback)) {
+            $data = array_merge($data, call_user_func($layoutCallback));
         }
         return $this->show($name, $data);
     }
 
     /**
      * 生成页面
-     * @param string $name
+     * @param array|string $name
      * @param array $data
      * @return string
-     * @throws \Exception
      */
-    protected function renderHtml($name = null, $data = []) {
+    protected function renderHtml(array|string $name = '', array $data = []): string {
         if (is_array($name)) {
             $data = $name;
-            $name = null;
+            $name = '';
         }
         return $this->renderFile($this->getViewFile($name), $data);
     }
 
-    public function renderFile($file, $data) {
-        $html = $this->viewFactory()->setLayout($this->findLayoutFile())
+    public function renderFile(string|File $file, array $data) {
+        return $this->viewFactory()->setLayout($this->findLayoutFile())
             ->setAttribute('controller', $this)
             ->render($file, $data);
-        return $html;
     }
 
     protected function findLayoutFile(): string|File
@@ -83,9 +80,8 @@ trait View {
      * 获取视图文件路径
      * @param string $name
      * @return string
-     * @throws \Exception
      */
-    protected function getViewFile($name = null) {
+    protected function getViewFile(string $name = ''): string {
         $context = $this->httpContext();
         if (empty($name)) {
             $name = $context['action'];
@@ -103,20 +99,20 @@ trait View {
      * @return Output
      * @throws \Exception
      */
-    public function showContent($html) {
+    public function showContent(string $html) {
         return $this->httpContext('response')->html($html);
     }
 
 
     /**
      * @param $url
-     * @param $message
+     * @param string $message
      * @param int $time
      * @param int $status
      * @return Output
      * @throws \Exception
      */
-    public function redirectWithMessage($url, $message, $time = 4, $status = 404) {
+    public function redirectWithMessage(mixed $url, string $message, int $time = 4, int $status = 404) {
         return $this->redirect($url, $time);
     }
 
@@ -136,7 +132,7 @@ trait View {
      * @return Output
      * @throws \Exception
      */
-    public function redirect($url, $time = 0) {
+    public function redirect(mixed $url, int $time = 0) {
         if ($this->httpContext('request')->wantsJson()) {
             return $this->render([
                 'code' => 302,

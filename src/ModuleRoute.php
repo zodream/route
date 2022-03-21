@@ -33,13 +33,13 @@ class ModuleRoute implements RouteInterface {
     /**
      * @var Module
      */
-    public $module;
+    public mixed $module;
     public string $modulePath;
 
     /**
      * @var Controller
      */
-    public $controller;
+    public mixed $controller;
 
     public function __construct()
     {
