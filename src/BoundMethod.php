@@ -5,6 +5,7 @@ namespace Zodream\Route;
 use Exception;
 use ReflectionException;
 use ReflectionParameter;
+use Zodream\Helpers\Str;
 use Zodream\Infrastructure\Contracts\Container;
 use Zodream\Infrastructure\Support\BoundMethod as BaseBound;
 
@@ -54,8 +55,7 @@ class BoundMethod extends BaseBound {
             'int' => intval($value),
             'float' => floatval($value),
             'double' => doubleval($value),
-            'bool' => ((is_numeric($value) && $value > 0) || (is_bool($value) && $value)
-                || (is_string($value) && strtolower($value) === 'true')) && !empty($value),
+            'bool' => Str::toBool($value),
             default => $value
         };
     }

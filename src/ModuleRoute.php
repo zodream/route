@@ -218,8 +218,10 @@ class ModuleRoute implements RouteInterface {
                 if (method_exists($instance, 'prepare')) {
                     $instance->prepare($context, $action);
                 }
-                $request = $context['request'];
-                $request->append($vars);
+                if (!empty($vars)) {
+                    $request = $context['request'];
+                    $request->append($vars);
+                }
                 $method = $action.config('app.action');
                 $res = BoundMethod::call([$instance, $method], $context, $vars);
                 if (method_exists($instance, 'finalize')) {

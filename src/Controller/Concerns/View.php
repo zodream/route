@@ -113,7 +113,7 @@ trait View {
      * @throws \Exception
      */
     public function redirectWithMessage(mixed $url, string $message, int $time = 4, int $status = 404) {
-        return $this->redirect($url, $time);
+        return $this->redirect($url);
     }
 
     /**

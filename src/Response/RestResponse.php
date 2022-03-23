@@ -6,7 +6,6 @@ use Zodream\Helpers\Arr;
 use Zodream\Helpers\Json;
 use Zodream\Helpers\Str;
 use Zodream\Helpers\Xml;
-use Zodream\Infrastructure\Contracts\Http\HttpOutput;
 use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Contracts\Response\PreResponse;
@@ -21,23 +20,23 @@ class RestResponse implements PreResponse, Output {
 
     protected int $type = self::TYPE_JSON;
 
-    protected $data;
+    protected mixed $data;
 
     /**
      * @var HttpContext
      */
-    protected $app;
+    protected HttpContext $app;
 
-    public function __construct($data, $type = self::TYPE_JSON) {
+    public function __construct(mixed $data, string|int $type = self::TYPE_JSON) {
         $this->setType($type)->setData($data);
         $this->app = app(HttpContext::class);
     }
 
     /**
-     * @param int $type
+     * @param string|int $type
      * @return RestResponse
      */
-    public function setType($type) {
+    public function setType(string|int $type) {
         $this->type = self::converterType($type);
         return $this;
     }
@@ -45,7 +44,7 @@ class RestResponse implements PreResponse, Output {
     /**
      * @return int
      */
-    public function getType() {
+    public function getType(): int {
         return $this->type;
     }
 
@@ -53,7 +52,7 @@ class RestResponse implements PreResponse, Output {
      * @param mixed $data
      * @return RestResponse
      */
-    public function setData($data) {
+    public function setData(mixed $data) {
         $this->data = $data;
         return $this;
     }
@@ -61,7 +60,7 @@ class RestResponse implements PreResponse, Output {
     /**
      * @return mixed
      */
-    public function getData() {
+    public function getData(): mixed {
         return $this->data;
     }
 
@@ -70,12 +69,12 @@ class RestResponse implements PreResponse, Output {
      * @throws \Exception
      */
     public function ready(Output $response) {
-        $response->header->setCORS();
-        if ($this->type == self::TYPE_XML) {
+        $response->allowCors();
+        if ($this->type === self::TYPE_XML) {
             $response->xml($this->formatXml($this->data));
             return;
         }
-        if ($this->type == self::TYPE_JSON_P) {
+        if ($this->type === self::TYPE_JSON_P) {
             $response->jsonp($this->data);
             return;
         }
@@ -83,13 +82,13 @@ class RestResponse implements PreResponse, Output {
     }
 
     public function text() {
-        if ($this->type == self::TYPE_XML) {
+        if ($this->type === self::TYPE_XML) {
             return $this->formatXml($this->data);
         }
         return Json::encode($this->data);
     }
 
-    public function formatXml($data) {
+    public function formatXml(mixed $data) {
         if (!is_array($data)) {
             return $data;
         }
@@ -102,29 +101,29 @@ class RestResponse implements PreResponse, Output {
     }
 
     /**
-     * @param $data
-     * @param int $type
+     * @param mixed $data
+     * @param string|int $type
      * @return RestResponse
      */
-    public static function create($data, $type = self::TYPE_JSON) {
+    public static function create(mixed $data, string|int $type = self::TYPE_JSON) {
         return new static($data, $type);
     }
 
     /**
-     * @param $data
+     * @param mixed $data
      * @return RestResponse
      * @throws \Exception
      */
-    public static function createWithAuto($data) {
+    public static function createWithAuto(mixed $data) {
         return static::create($data, self::formatType());
     }
 
     /**
      * 转化成当前可用类型
-     * @param $format
+     * @param string|int $format
      * @return int
      */
-    public static function converterType($format) {
+    public static function converterType(string|int $format): int {
         $format = is_numeric($format) ? intval($format) : strtolower($format);
         if ($format == 'xml' || $format === self::TYPE_XML) {
             return self::TYPE_XML;
@@ -140,7 +139,7 @@ class RestResponse implements PreResponse, Output {
      * @return string
      * @throws \Exception
      */
-    public static function formatType() {
+    public static function formatType(): string {
         $request = request();
         $format = $request->get('format');
         if (!empty($format)) {
@@ -179,6 +178,13 @@ class RestResponse implements PreResponse, Output {
     {
         $output = $this->app->make('response');
         $output->statusCode($code, $statusText);
+        return $output;
+    }
+
+    public function allowCors()
+    {
+        $output = $this->app->make('response');
+        $output->allowCors();
         return $output;
     }
 }

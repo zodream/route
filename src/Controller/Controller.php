@@ -2,7 +2,6 @@
 declare(strict_types=1);
 namespace Zodream\Route\Controller;
 
-use BadMethodCallException;
 use Closure;
 use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\HttpContext;
