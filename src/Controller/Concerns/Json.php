@@ -29,7 +29,7 @@ trait Json {
      * @param string $message
      * @return Output
      */
-    public function renderData($data, string $message = ''): Output
+    public function renderData(mixed $data, string $message = ''): Output
     {
         return $this->jsonFactory()->renderData($data, $message);
     }
