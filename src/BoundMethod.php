@@ -41,21 +41,58 @@ class BoundMethod extends BaseBound {
             return $value;
         }
         $type = $parameter->getType();
-        if ($type instanceof \ReflectionUnionType) {
-            return $value;
+        if (!($type instanceof \ReflectionUnionType)) {
+            return static::formatValue($type->getName(), $value);
+
         }
-        return static::formatValue($type->getName(), $value);
+        $types = [];
+        $hasArr = false;
+        foreach ($type->getTypes() as $item) {
+            $name = $item->getName();
+            if ($name === 'array') {
+                $hasArr = true;
+                continue;
+            }
+            $types[] = $name;
+        }
+        return static::formatUnionValue($hasArr, $types, $value);
+    }
+
+    public static function formatUnionValue(bool $hasArr, array $types, $value) {
+        if ($hasArr && is_array($value)) {
+            return array_map(function ($val)  use ($types) {
+                return static::formatAnyType($types, $val);
+            }, $value);
+        }
+        return static::formatAnyType($types, $value);
+    }
+
+    protected static function formatAnyType(array $types, $value) {
+        foreach ($types as $type) {
+            if ($type === 'float' && is_numeric($value)) {
+                return floatval($value);
+            }
+            if ($type === 'int' && is_numeric($value)) {
+                return intval($value);
+            }
+            if ($type === 'bool' && is_bool($value)) {
+                return Str::toBool($value);
+            }
+            if ($type === 'null' && is_null($value)) {
+                return null;
+            }
+        }
+        return self::formatValue(end($types), $value);
     }
 
     public static function formatValue(string $type, $value) {
-        if (empty($type)) {
-            return $value;
-        }
         return match ($type) {
             'int' => intval($value),
             'float' => floatval($value),
             'double' => doubleval($value),
             'bool' => Str::toBool($value),
+            'array' => (array)$value,
+            'null' => null,
             default => $value
         };
     }

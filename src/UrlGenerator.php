@@ -150,12 +150,12 @@ class UrlGenerator implements UrlGeneratorInterface {
     }
 
     /**判断是否带url段
-     * @param string $search
+     * @param string|null $search
      * @return bool
      */
-    public function hasUri($search = null): bool {
+    public function hasUri(?string $search = null): bool {
         $url = $this->uri->getPath();
-        if (is_null($search) && $url == '/') {
+        if (is_null($search) && $url === '/') {
             return true;
         }
         return str_contains($url, '/' . trim($search, '/'));
