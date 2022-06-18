@@ -81,6 +81,9 @@ class BoundMethod extends BaseBound {
             if ($type === 'null' && is_null($value)) {
                 return null;
             }
+            if ($type === 'string' && is_string($value)) {
+                return $value;
+            }
         }
         return self::formatValue(end($types), $value);
     }
