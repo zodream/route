@@ -37,7 +37,8 @@ trait BatchAction {
             if (!is_array($params)) {
                 $params = [];
             }
-            $res = is_callable($routes[$path]) ? BoundMethod::call($routes[$path], $context, $params) : $routes[$path];
+            $action = $routes[$path];
+            $res = is_string($action) || is_callable($action) ? BoundMethod::call($action, $context, $params) : $routes[$path];
             $data[$key] = $res instanceof RestResponse ? $res->getData() : $res;
         }
 //        foreach ($routes as $path => $action) {
