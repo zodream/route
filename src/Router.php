@@ -195,10 +195,10 @@ class Router implements RouterInterface {
     /**
      * @param string $method
      * @param string $uri
-     * @return bool|Route
+     * @return ?RouteInterface
      * @throws Exception
      */
-    public function getRoute(string $method, string $uri) {
+    public function findRoute(string $method, string $uri): ?RouteInterface {
         timer('match route');
         if (isset($this->staticRouteMap[$method][$uri])) {
             return $this->staticRouteMap[$method][$uri];
@@ -212,7 +212,7 @@ class Router implements RouterInterface {
                 }
             }
         }
-        return false;
+        return null;
     }
 
     public function handle(HttpContext $context): RouteInterface {
