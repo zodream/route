@@ -43,7 +43,6 @@ class BoundMethod extends BaseBound {
         $type = $parameter->getType();
         if (!($type instanceof \ReflectionUnionType)) {
             return static::formatValue($type->getName(), $value);
-
         }
         $types = [];
         $hasArr = false;
@@ -94,6 +93,7 @@ class BoundMethod extends BaseBound {
             'float' => floatval($value),
             'double' => doubleval($value),
             'bool' => Str::toBool($value),
+            'string' => (string)$value,
             'array' => (array)$value,
             'null' => null,
             default => $value
