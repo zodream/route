@@ -145,7 +145,7 @@ class ModuleRoute implements RouteInterface {
                 continue;
             }
             // 要记录当前模块所对应的路径
-            return [Str::firstReplace($path, $key), $key, $module];
+            return [trim(Str::firstReplace($path, $key), '/'), $key, $module];
         }
         // 默认模块
         if (array_key_exists('default', $modules)) {
