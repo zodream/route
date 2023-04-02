@@ -57,6 +57,11 @@ class RestResponse implements PreResponse, Output {
         return $this;
     }
 
+    public function writeLine(mixed $messages)
+    {
+        $this->setData($messages);
+    }
+
     /**
      * @return mixed
      */
