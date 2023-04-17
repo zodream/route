@@ -30,7 +30,7 @@ class RewriteEncoder implements URLEncoder {
         if (empty($path)) {
             return ['', $args];
         }
-        if (empty($path) || $path === '/') {
+        if ($path === '/') {
             return ['', $args];
         }
         $ext = config('route.rewrite');
