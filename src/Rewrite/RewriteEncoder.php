@@ -7,9 +7,14 @@ use Zodream\Infrastructure\Contracts\Config\Repository;
 
 class RewriteEncoder implements URLEncoder {
 
+    protected string $rewriteSeparator = '0_0';
     protected string $rewriteExtension = '';
     public function __construct(Repository $config) {
         $this->rewriteExtension = (string)$config->get('route.rewrite', '');
+        $separator = $config->get('route.rewrite_separator', '');
+        if (!empty($separator)) {
+            $this->rewriteSeparator = (string)$separator;
+        }
     }
 
 
@@ -35,7 +40,7 @@ class RewriteEncoder implements URLEncoder {
      */
     public function enRewrite($path, array $args) {
         list($path, $can) = $this->filterPath($path);
-        if (!$can || empty($path) || empty($args) || empty($this->rewriteExtension)) {
+        if (!$can || (empty($path) && empty($args)) || empty($this->rewriteExtension)) {
             return [
                 $path,
                 $args
@@ -92,7 +97,6 @@ class RewriteEncoder implements URLEncoder {
                 $args
             ];
         }
-        $spilt = '0';
         $data = [];
         $queries = [];
         $enable = true;
@@ -122,7 +126,7 @@ class RewriteEncoder implements URLEncoder {
         }
         if (!is_numeric($data[1])) {
             return [
-                sprintf('%s/%s/%s%s', $path, $spilt, implode('/', $data), $ext),
+                sprintf('%s/%s/%s%s', $path, $this->rewriteSeparator, implode('/', $data), $ext),
                 $queries
             ];
         }
@@ -166,16 +170,20 @@ class RewriteEncoder implements URLEncoder {
     private function spiltArrayByNumber(array $routes): array {
         $values = array();
         for ($i = 0, $len = count($routes); $i < $len; $i++) {
+            if ($routes[$i] === $this->rewriteSeparator) {
+                $values = array_splice($routes, $i + 1);
+                unset($routes[$i]);
+                break;
+            }
             if (!is_numeric($routes[$i])) {
                 continue;
             }
-            if ($i < $len - 1 && ($len - $i) % 2 === 1) {
-                // 数字作为分割符,无意义
+            if ($i === 0) {
                 $values = array_splice($routes, $i + 1);
                 unset($routes[$i]);
-            } else {
-                $values = array_splice($routes, $i - 1);
+                break;
             }
+            $values = array_splice($routes, $i - 1);
             break;
         }
         return array(
