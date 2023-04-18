@@ -35,7 +35,7 @@ class RewriteEncoder implements URLEncoder {
      */
     public function enRewrite($path, array $args) {
         list($path, $can) = $this->filterPath($path);
-        if (!$can || empty($path) && empty($args)) {
+        if (!$can || empty($path) || empty($args) || empty($this->rewriteExtension)) {
             return [
                 $path,
                 $args
