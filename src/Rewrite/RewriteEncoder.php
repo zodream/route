@@ -2,10 +2,17 @@
 declare(strict_types=1);
 namespace Zodream\Route\Rewrite;
 
-use Zodream\Helpers\Str;
 use Zodream\Http\Uri;
+use Zodream\Infrastructure\Contracts\Config\Repository;
 
 class RewriteEncoder implements URLEncoder {
+
+    protected string $rewriteExtension = '';
+    public function __construct(Repository $config) {
+        $this->rewriteExtension = (string)$config->get('route.rewrite', '');
+    }
+
+
 
     public function encode(Uri $url, callable $next): Uri
     {
@@ -14,10 +21,10 @@ class RewriteEncoder implements URLEncoder {
         return $url->setPath($path)->setData($params);
     }
 
-    public function decode(Uri $uri, callable $next): Uri
+    public function decode(Uri $url, callable $next): Uri
     {
-        list($path, $params) = $this->deRewrite($uri->getPath());
-        return $next($uri->setPath($path)->addData($params));
+        list($path, $params) = $this->deRewrite($url->getPath());
+        return $next($url->setPath($path)->addData($params));
     }
 
     /**
@@ -27,67 +34,101 @@ class RewriteEncoder implements URLEncoder {
      * @return array
      */
     public function enRewrite($path, array $args) {
-        if (empty($path)) {
-            return ['', $args];
-        }
-        if ($path === '/') {
-            return ['', $args];
-        }
-        $ext = config('route.rewrite');
-        if (!is_string($ext)) {
-            $ext = '';
-        }
-        if (!empty($ext) && str_contains($path, $ext)) {
+        list($path, $can) = $this->filterPath($path);
+        if (!$can || empty($path) && empty($args)) {
             return [
                 $path,
                 $args
             ];
         }
-        if (empty($ext) || empty($args) || count($args) > 2) {
-            $path = trim($path, '/');
-            return [
-                !Str::endWith($path, '.php') ? $path.$ext : $path,
-                $args
-            ];
+        return $this->mergeUri($path, $args, $this->rewriteExtension);
+    }
+
+    protected function filterPath(string $path): array {
+        $path = rtrim($path, '/');
+        if (!empty($path) && preg_match('#\.\w*$#', $path, $_)) {
+            return [$path, false];
         }
-        return $this->mergeUri(trim($path, '/'), $args, $ext);
+        return [$path, true];
+    }
+
+    protected function canRewrite($path, array $data): bool {
+        if (empty($this->rewriteExtension)) {
+            return false;
+        }
+        if (empty($path) || $path === '/') {
+            return false;
+        }
+        if (str_ends_with($path, $this->rewriteExtension)) {
+            return false;
+        }
+        if (str_contains($path, '.')) {
+            return false;
+        }
+        if (!empty($args) && count($args) > 2) {
+            return false;
+        }
+        foreach ($data as $key => $item) {
+            if (is_string($key) && str_contains($key, '/')) {
+                return false;
+            }
+            if (is_string($item) && str_contains($item, '/')) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
-     * @param $path
+     * @param string $path
      * @param array $args
      * @param string $ext
      * @return array
      */
-    private function mergeUri($path, array $args, $ext = ''): array {
+    private function mergeUri(string $path, array $args, string $ext = ''): array {
+        if (empty($args)) {
+            return [
+                $path . $ext,
+                $args
+            ];
+        }
         $spilt = '0';
         $data = [];
+        $queries = [];
+        $enable = true;
         foreach ($args as $key => $arg) {
-            if (!is_numeric($arg) && empty($arg)) {
-                return [
-                    $path . $ext,
-                    $args
-                ];
+            if (!$enable) {
+                $queries[$key] = $arg;
+                continue;
             }
-            if (is_numeric($key) || str_contains((string)$arg, '/')) {
-                return [
-                    $path . $ext,
-                    $args
-                ];
-            }
-            if ($spilt === '0' && is_numeric($arg) && count($args) < 2) {
-                $spilt = sprintf('%s/%s', $key, $arg);
+            if (!is_string($key) ||
+                str_contains($key, '[') ||
+                (is_string($arg) && str_contains($arg, '/')) ||
+                is_null($arg) || is_array($arg) || is_object($arg)
+                || $arg === ''
+            ) {
+                $enable = false;
+                $queries[$key] = $arg;
                 continue;
             }
             $data[] = $key;
             $data[] = $arg;
         }
-        if (!empty($data)) {
-            $spilt = sprintf('%s/%s', $spilt, implode('/', $data));
+        if (empty($data)) {
+            return [
+                sprintf('%s%s', $path, $ext),
+                $queries
+            ];
+        }
+        if (!is_numeric($data[1])) {
+            return [
+                sprintf('%s/%s/%s%s', $path, $spilt, implode('/', $data), $ext),
+                $queries
+            ];
         }
         return [
-            sprintf('%s/%s%s', $path, $spilt, $ext),
-            []
+            sprintf('%s/%s%s', $path, implode('/', $data), $ext),
+            $queries
         ];
     }
 
@@ -104,9 +145,8 @@ class RewriteEncoder implements URLEncoder {
         if (empty($path)) {
             return ['', []];
         }
-        $ext = config('route.rewrite');
-        if (!empty($ext)) {
-            $path = Str::lastReplace($path, $ext);
+        if (!empty($this->rewriteExtension) && str_ends_with($path, $this->rewriteExtension)) {
+            $path = substr($path, 0, strlen($path) - strlen($this->rewriteExtension));
         }
         if (empty($path)) {
             return ['', []];
