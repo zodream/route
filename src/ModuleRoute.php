@@ -8,6 +8,7 @@ use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Infrastructure\Contracts\Route as RouteInterface;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
+use Zodream\Infrastructure\Support\RouteHelper;
 use Zodream\Route\Controller\Controller;
 use Zodream\Route\Controller\Module;
 use Zodream\Route\Exception\ControllerException;
@@ -141,7 +142,7 @@ class ModuleRoute implements RouteInterface {
     public function tryMatchModule(string $path): array {
         $modules = config('route.modules', []);
         foreach ($modules as $key => $module) {
-            if (!$this->isMatch($path, $key)) {
+            if (!RouteHelper::startWithRoute($path, $key)) {
                 continue;
             }
             // 要记录当前模块所对应的路径
@@ -152,11 +153,6 @@ class ModuleRoute implements RouteInterface {
             return [$path, '', $modules['default']];
         }
         return [$path, '', ''];
-    }
-
-    public function isMatch(string $path, string $module): bool {
-        $i = strpos($path, '/');
-        return $i === false ? $path === $module : substr($path, 0, $i) === $module;
     }
 
     /**
