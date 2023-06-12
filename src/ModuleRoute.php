@@ -154,8 +154,9 @@ class ModuleRoute implements RouteInterface {
         return [$path, '', ''];
     }
 
-    protected function isMatch(string $path, string $module): bool {
-        return str_starts_with($path, $module);
+    public function isMatch(string $path, string $module): bool {
+        $i = strpos($path, '/');
+        return $i === false ? $path === $module : substr($path, 0, $i) === $module;
     }
 
     /**
