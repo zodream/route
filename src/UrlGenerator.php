@@ -121,7 +121,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return '';
     }
 
-    public function action($action, $parameters = [], $absolute = true): string
+    public function action(string|array $action, array $parameters = [], bool $absolute = true): string
     {
         return '';
     }
@@ -132,6 +132,8 @@ class UrlGenerator implements UrlGeneratorInterface {
         if (!empty($url)) {
             $uri->setData([])
                 ->setFragment('')->decode($url);
+        } else {
+            $uri->setPath('');
         }
         return $this->invokeMiddleware($uri, 'decode');
     }
