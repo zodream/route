@@ -15,22 +15,22 @@ class UrlGenerator implements UrlGeneratorInterface {
     /**
      * @var HttpContext
      */
-    protected $container;
+    protected HttpContext $container;
     /**
      * @var Input
      */
-    protected $request;
+    protected ?Input $request = null;
     /**
      * @var string
      */
-    protected $modulePath = '';
+    protected string $modulePath = '';
 
-    protected $modulePrefix = '';
+    protected string $modulePrefix = '';
     /**
      * @var Uri
      */
-    protected $uri;
-    protected $useScript = false;
+    protected ?Uri $uri = null;
+    protected bool|string $useScript = false;
     /**
      * @var URLEncoder[]
      */
@@ -81,7 +81,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return (string)$uri->setData([])->setFragment(null);
     }
 
-    public function previous($fallback = false): string
+    public function previous(bool $fallback = false): string
     {
         $referrer = $this->request->referrer();
         if ($referrer) {
@@ -93,7 +93,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->to('/');
     }
 
-    public function to($path, $extra = [], $secure = null, bool $encode = true): string
+    public function to(mixed $path, array $extra = [], ?bool $secure = null, bool $encode = true): string
     {
         if ($path instanceof Uri && empty($extra) && !empty($path->getHost())) {
             return $this->formatUrl($path);
@@ -102,12 +102,12 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->formatUrl($uri, $encode);
     }
 
-    public function secure($path, $parameters = []): string
+    public function secure(mixed $path, array $parameters = []): string
     {
         return '';
     }
 
-    public function asset(string $path, $secure = null): string
+    public function asset(string $path, ?bool $secure = null): string
     {
         if ($this->isValidUrl($path)) {
             return $path;
@@ -116,7 +116,7 @@ class UrlGenerator implements UrlGeneratorInterface {
             $this->uri->getHost(), trim($path, '/'));
     }
 
-    public function route(string $name, $parameters = [], $absolute = true): string
+    public function route(string $name, array $parameters = [], bool $absolute = true): string
     {
         return '';
     }
@@ -143,7 +143,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->invokeMiddleware($url, 'encode');
     }
 
-    public function formatScheme($secure = null): string
+    public function formatScheme(?bool $secure = null): string
     {
         if (! is_null($secure)) {
             return $secure ? 'https' : 'http';
@@ -187,7 +187,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $root;
     }
 
-    protected function formatUrl($url, bool $encode = true): string {
+    protected function formatUrl(mixed $url, bool $encode = true): string {
         if (!$encode || !($url instanceof Uri)) {
             return (string)$url;
         }
@@ -210,7 +210,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return str_starts_with($path, '#') || str_starts_with($path, 'javascript:');
     }
 
-    public function useCustomScript($script = 'index.php') {
+    public function useCustomScript(bool|string $script = 'index.php') {
         $this->useScript = $script;
         return $this;
     }
@@ -222,7 +222,7 @@ class UrlGenerator implements UrlGeneratorInterface {
      * @param null $secure
      * @return string|Uri
      */
-    public function toRealUri($path = null, $extra = null, $secure = null) {
+    public function toRealUri(mixed $path = null, array|bool $extra = null, ?bool $secure = null) {
         if (is_string($path) && ($this->isSpecialUrl($path) || $this->isValidUrl($path))) {
             return $path;
         }
@@ -231,11 +231,11 @@ class UrlGenerator implements UrlGeneratorInterface {
 
     /**
      * @param string|Uri $path
-     * @param null $extra
-     * @param null $secure
+     * @param array|bool|null $extra
+     * @param bool|null $secure
      * @return Uri
      */
-    protected function toUri($path, $extra = null, $secure = null): Uri {
+    protected function toUri(mixed $path, array|bool $extra = null, ?bool $secure = null): Uri {
         if (!$path instanceof Uri) {
             $path = $this->createUri($path);
         }
@@ -258,7 +258,7 @@ class UrlGenerator implements UrlGeneratorInterface {
      * @param array|string $file
      * @return Uri
      */
-    public function createUri($file): Uri
+    public function createUri(mixed $file): Uri
     {
         $uri = new Uri();
         if (!is_array($file)) {
@@ -294,9 +294,9 @@ class UrlGenerator implements UrlGeneratorInterface {
         return '/'.$this->useScript;
     }
 
-    protected function addScript($path) {
+    protected function addScript(string $path) {
         if (strpos($path, '.') > 0
-            || strpos($path, '/') === 0) {
+            || str_starts_with($path, '/')) {
             return $path;
         }
         $name = $this->getCurrentScript();
@@ -306,11 +306,11 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $name.'/'.$path;
     }
 
-    protected function getPath($path): string {
+    protected function getPath(mixed $path): string {
         if ($path === false) {
             return $this->current();
         }
-        if (empty($path) || $path === '0') {
+        if (empty($path)) {
             return $this->request->url();
         }
         if ($path === -1 || $path === '-1') {
@@ -341,7 +341,7 @@ class UrlGenerator implements UrlGeneratorInterface {
     }
 
     protected function addModulePrefix(string $path) {
-        if (empty($path) || substr($path, 0, 1) !== '@') {
+        if (empty($path) || !str_starts_with($path, '@')) {
             return $path;
         }
         if (empty($this->modulePrefix)) {
