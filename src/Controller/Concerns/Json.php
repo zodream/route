@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Zodream\Route\Controller\Concerns;
 
+use Throwable;
 use Zodream\Html\Page;
 use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\Response\JsonResponse;
@@ -46,13 +47,20 @@ trait Json {
 
     /**
      * 响应失败数据
-     * @param string|array $message
+     * @param string|array|Throwable $message
      * @param int $code
      * @param int $statusCode
      * @return Output
      */
-    public function renderFailure(string|array $message, int $code = 400, int $statusCode = 0): Output
+    public function renderFailure(string|array|Throwable $message, int $code = 400, int $statusCode = 0): Output
     {
+        if ($message instanceof Throwable) {
+            $message = app()->isDebug() ? [
+                'message' => $message->getMessage(),
+                'file' => $message->getFile(),
+                'line' => $message->getLine()
+            ] : $message->getMessage();
+        }
         return $this->jsonFactory()->renderFailure($message, $code, $statusCode);
     }
 }
