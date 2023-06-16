@@ -17,7 +17,7 @@ class UrlGenerator implements UrlGeneratorInterface {
      */
     protected HttpContext $container;
     /**
-     * @var Input
+     * @var Input|null
      */
     protected ?Input $request = null;
     /**
@@ -102,9 +102,8 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->formatUrl($uri, $encode);
     }
 
-    public function secure(mixed $path, array $parameters = []): string
-    {
-        return '';
+    public function secure(mixed $path, array $parameters = []): string {
+        return $this->to($path, $parameters, true);
     }
 
     public function asset(string $path, ?bool $secure = null): string
@@ -116,14 +115,17 @@ class UrlGenerator implements UrlGeneratorInterface {
             $this->uri->getHost(), trim($path, '/'));
     }
 
-    public function route(string $name, array $parameters = [], bool $absolute = true): string
-    {
-        return '';
+    public function route(string $name, array $parameters = [], bool $absolute = true): string {
+        return $this->to($name, $parameters);
     }
 
-    public function action(string|array $action, array $parameters = [], bool $absolute = true): string
-    {
-        return '';
+    public function action(string|array $action, array $parameters = [], bool $absolute = true): string {
+        /** @var ModuleRoute $route */
+        $route = $this->container->make(ModuleRoute::class);
+        $action = $route->formatAction($action);
+        $path = $route->toPath($action['module'] ?? '',
+            $action['controller'] ?? '', $action['action'] ?? '');
+        return $this->to($path, $parameters);
     }
 
     public function decode(string $url = ''): Uri

@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Zodream\Route;
 
 use Exception;
+use Zodream\Helpers\Arr;
 use Zodream\Helpers\Str;
 use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\HttpContext;
@@ -16,6 +17,8 @@ use Zodream\Route\Exception\ModuleException;
 use Zodream\Route\Exception\NotFoundHttpException;
 
 class ModuleRoute implements RouteInterface {
+
+    const DEFAULT_ROUTE = 'default';
 
     /**
      * The HTTP methods the route responds to.
@@ -68,7 +71,7 @@ class ModuleRoute implements RouteInterface {
         return $this->invokePath($path, 'Service\\'.$moduleName, $context);
     }
 
-    public function module($name, callable $handle = null, array $modules = []) {
+    public function module(string $name, callable $handle = null, array $modules = []) {
         if (empty($modules)) {
             $modules = config('route.modules', []);
         }
@@ -93,7 +96,7 @@ class ModuleRoute implements RouteInterface {
         return $res;
     }
 
-    public function invokePath($path, $baseName, HttpContext $context) {
+    public function invokePath(string $path, string $baseName, HttpContext $context) {
         list($class, $action) = $this->getClassAndAction($path, $baseName);
         if (!class_exists($class)) {
             throw new Exception($class.
@@ -102,7 +105,7 @@ class ModuleRoute implements RouteInterface {
         return $this->invokeClass($class, $action, $context);
     }
 
-    public function invokeModule($path, $module, HttpContext $context) {
+    public function invokeModule(string $path, string $module, HttpContext $context) {
         $module = static::moduleInstance($module, $context);
         if (!$module instanceof Module) {
             return $this->invokeClass($module, $path, $context);
@@ -149,21 +152,21 @@ class ModuleRoute implements RouteInterface {
             return [trim(Str::firstReplace($path, $key), '/'), $key, $module];
         }
         // 默认模块
-        if (array_key_exists('default', $modules)) {
-            return [$path, '', $modules['default']];
+        if (array_key_exists(static::DEFAULT_ROUTE, $modules)) {
+            return [$path, '', $modules[static::DEFAULT_ROUTE]];
         }
         return [$path, '', ''];
     }
 
     /**
-     * @param $class
-     * @param $action
+     * @param string $class
+     * @param string $action
      * @param HttpContext $context
      * @param array $vars
      * @return Output|mixed
-     * @throws Exception
+     * @throws \ReflectionException
      */
-    protected function invokeController($class, $action, HttpContext $context, array $vars = []) {
+    protected function invokeController(string $class, string $action, HttpContext $context, array $vars = []) {
         if (!Str::endWith($class, config('app.controller'))) {
             $class .= config('app.controller');
         }
@@ -178,13 +181,13 @@ class ModuleRoute implements RouteInterface {
     /**
      * 执行控制器，进行初始化并执行方法
      * @param $instance
-     * @param $action
+     * @param string $action
      * @param HttpContext $context
      * @param array $vars
      * @return Output|mixed
-     * @throws Exception
+     * @throws \ReflectionException
      */
-    protected function invokeClass($instance, $action, HttpContext $context, array $vars = []) {
+    protected function invokeClass(mixed $instance, string $action, HttpContext $context, array $vars = []) {
         timer('controller response');
         if (is_string($instance)) {
             $instance = BoundMethod::newClass($instance, $context, $vars);
@@ -203,7 +206,7 @@ class ModuleRoute implements RouteInterface {
         return $this->tryInvokeAction($instance, $action, $vars, $context);
     }
 
-    public function tryInvokeAction($instance, $action, array $vars, HttpContext $context) {
+    public function tryInvokeAction(mixed $instance, string $action, array $vars, HttpContext $context) {
         $middleware = $this->getControllerMiddleware($instance, $action);
         return (new MiddlewareProcessor($context))
             ->through($middleware)
@@ -228,7 +231,7 @@ class ModuleRoute implements RouteInterface {
             });
     }
 
-    protected function getControllerMiddleware($controller, $method)
+    protected function getControllerMiddleware(mixed $controller, string $method): array
     {
         if (! method_exists($controller, 'getMiddleware')) {
             return [];
@@ -243,7 +246,7 @@ class ModuleRoute implements RouteInterface {
         return $items;
     }
 
-    protected function getClassAndAction($path, $baseName) {
+    protected function getClassAndAction(string $path, string $baseName): array {
         $baseName = rtrim($baseName, '\\').'\\';
         $path = trim($path, '/');
         if (empty($path)) {
@@ -259,9 +262,10 @@ class ModuleRoute implements RouteInterface {
         return $this->getControllerAndAction($codeItems, $baseName);
     }
 
-    protected function getControllerAndAction(array $paths, $baseName) {
+    protected function getControllerAndAction(array $paths, string $baseName): array {
+        $ctlTag = config('app.controller');
 //        1.匹配全路径作为控制器 index 为方法,
-        $class = $baseName.implode('\\', $paths). config('app.controller');
+        $class = $baseName.implode('\\', $paths). $ctlTag;
         if (class_exists($class)) {
             return [$class, 'index'];
         }
@@ -269,22 +273,22 @@ class ModuleRoute implements RouteInterface {
         $count = count($paths);
         if ($count > 1) {
             $action = array_pop($paths);
-            $class = $baseName.implode('\\', $paths). config('app.controller');
+            $class = $baseName.implode('\\', $paths). $ctlTag;
             if (class_exists($class)) {
                 return [$class, lcfirst($action)];
             }
         }
 //        3.匹配作为文件夹
-        $class = $baseName.implode('\\', $paths).'\\Home'. config('app.controller');
+        $class = $baseName.implode('\\', $paths).'\\Home'. $ctlTag;
         if (class_exists($class)) {
             return [$class, 'index'];
         }
 //        4.一个是匹配 home 控制器 作为方法
         if ($count == 1) {
-            return [$baseName.'Home'.config('app.controller'), lcfirst($paths[0])];
+            return [$baseName.'Home'.$ctlTag, lcfirst($paths[0])];
         }
         $action = array_pop($paths);
-        $class = $baseName.implode('\\', $paths). '\\Home'. config('app.controller');
+        $class = $baseName.implode('\\', $paths). '\\Home'. $ctlTag;
         if (class_exists($class)) {
             return [$class, lcfirst($action)];
         }
@@ -293,7 +297,7 @@ class ModuleRoute implements RouteInterface {
         );
     }
 
-    public static function moduleInstance($module, HttpContext $context) {
+    public static function moduleInstance(string $module, HttpContext $context): mixed {
         if (class_exists($module)) {
             return BoundMethod::newClass($module, $context);
         }
@@ -309,5 +313,142 @@ class ModuleRoute implements RouteInterface {
     {
         return (isset($options['only']) && ! in_array($method, (array) $options['only'])) ||
             (! empty($options['except']) && in_array($method, (array) $options['except']));
+    }
+
+    public function getModulePath(string $module): string|bool {
+        $maps = config('route.modules', []);
+        foreach ($maps as $key => $mdl) {
+            if ($this->isModule($module, $mdl)) {
+                return $key;
+            }
+        }
+        return false;
+    }
+
+
+    /**
+     * 根据这些转化为网址路径
+     * @param string $module
+     * @param string $controller
+     * @param string $action
+     * @return string 例如 /aa
+     */
+    public function toPath(string $module, string $controller, string $action): string {
+        $path = [''];
+        if (!empty($module)) {
+            $mdlPath = $this->getModulePath($module);
+            if ($mdlPath === false) {
+                // 模块未注册
+                return '/';
+            }
+            if ($mdlPath !== static::DEFAULT_ROUTE) {
+                $path[] = $mdlPath;
+            }
+        }
+        $ctlTag = config('app.controller');
+        $actTag = config('app.action');
+        $ctlPath = empty($controller) ? '' : Str::endTrim($controller, $ctlTag);
+        $i = strpos($ctlPath, 'Service\\');
+        if ($i !== false) {
+            $ctlPath = substr($ctlPath, $i + 8);
+        }
+        foreach (explode('\\', $ctlPath) as $item) {
+            if (empty($item)) {
+                continue;
+            }
+            $path[] = Str::unStudly($item);
+        }
+        $actPath = empty($action) ? '' : Str::endTrim($action, $actTag);
+        $path[] = Str::unStudly($actPath);
+        if (!empty($ctlPath)) {
+            // 删除 home 控制器 index 方法
+            $count = count($path);
+            $last = $path[$count - 1];
+            if ($last === '' || $last === 'index') {
+                array_pop($path);
+                $count --;
+                if ($path[$count - 1] === 'home') {
+                    array_pop($path);
+                }
+            }
+        }
+        return implode('/', $path);
+    }
+
+    protected function isModule(string $a, string $b): bool {
+        $a = trim($a, '\\');
+        $b = trim($b, '\\');
+        if ($a === $b) {
+            return true;
+        }
+        $min = min(strlen($a), strlen($b));
+        if (!substr($a, 0, $min) === substr($b, 0, $min)) {
+            return false;
+        }
+        $mdlTag = '\\Module';
+        if (!str_ends_with($a, $mdlTag)) {
+            $a .= $mdlTag;
+        }
+        if (!str_ends_with($b, $mdlTag)) {
+            $b .= $mdlTag;
+        }
+        return $a === $b;
+    }
+
+    /**
+     *
+     * @param string|array $action
+     * @return array{module: string,controller: string,action: string}
+     */
+    public function formatAction(string|array $action): array {
+        if (empty($action)) {
+            return [];
+        }
+        $ctlTag = config('app.controller');
+        $actTag = config('app.action');
+        if (is_array($action) && Arr::isAssoc($action)) {
+            return $action;
+        }
+        if (!is_array($action)) {
+            $action = explode('@', $action);
+        }
+        $count = count($action);
+        if ($count > 2) {
+            return ['module' => $action[0], 'controller' => $action[1], 'action' => $action[2]];
+        }
+        $module = '';
+        $controller = '';
+        $action = '';
+        $last = $action[$count - 1];
+        if (str_ends_with($last, $actTag)) {
+            $action = $last;
+            if ($count < 2) {
+                return compact('action', 'module', 'controller');
+            }
+            if (!str_ends_with($action[0], $ctlTag)) {
+                $module = $action[0];
+                return compact('action', 'module', 'controller');
+            }
+            $controller = $action[0];
+            $module = $this->formatFromController($controller);
+            return compact('action', 'module', 'controller');
+        }
+        if ($count > 1) {
+            $module = $action[0];
+            $controller = $action[1];
+            return compact('action', 'module', 'controller');
+        }
+        if (!str_ends_with($action[0], $ctlTag)) {
+            $module = $action[0];
+            return compact('action', 'module', 'controller');
+        }
+        $controller = $action[0];
+        $module = $this->formatFromController($controller);
+        return compact('action', 'module', 'controller');
+    }
+
+    protected function formatFromController(string $ctr): string {
+        $i = strpos($ctr, 'Service');
+        return $i > 0 ? substr($ctr, 0, $i) : '';
     }
 }
