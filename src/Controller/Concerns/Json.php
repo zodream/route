@@ -4,6 +4,7 @@ namespace Zodream\Route\Controller\Concerns;
 
 use Throwable;
 use Zodream\Html\Page;
+use Zodream\Infrastructure\Contracts\ArrayAble;
 use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\Response\JsonResponse;
 
@@ -54,7 +55,11 @@ trait Json {
      */
     public function renderFailure(string|array|Throwable $message, int $code = 400, int $statusCode = 0): Output
     {
-        if ($message instanceof Throwable) {
+        if ($message instanceof ArrayAble) {
+            $message = [
+                'message' => $message->toArray()
+            ];
+        } elseif ($message instanceof Throwable) {
             $message = app()->isDebug() ? [
                 'message' => $message->getMessage(),
                 'file' => $message->getFile(),
