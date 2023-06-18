@@ -409,40 +409,39 @@ class ModuleRoute implements RouteInterface {
         if (is_array($action) && Arr::isAssoc($action)) {
             return $action;
         }
-        if (!is_array($action)) {
-            $action = explode('@', $action);
-        }
-        $count = count($action);
+        $lastIsAction = !is_array($action);
+        $routes = is_array($action) ? $action : explode('@', $action);
+        $count = count($routes);
         if ($count > 2) {
-            return ['module' => $action[0], 'controller' => $action[1], 'action' => $action[2]];
+            return ['module' => $routes[0], 'controller' => $routes[1], 'action' => $routes[2]];
         }
         $module = '';
         $controller = '';
         $action = '';
-        $last = $action[$count - 1];
-        if (str_ends_with($last, $actTag)) {
+        $last = $routes[$count - 1];
+        if ($lastIsAction || str_ends_with($last, $actTag)) {
             $action = $last;
             if ($count < 2) {
                 return compact('action', 'module', 'controller');
             }
-            if (!str_ends_with($action[0], $ctlTag)) {
-                $module = $action[0];
+            if (!str_ends_with($routes[0], $ctlTag)) {
+                $module = $routes[0];
                 return compact('action', 'module', 'controller');
             }
-            $controller = $action[0];
+            $controller = $routes[0];
             $module = $this->formatFromController($controller);
             return compact('action', 'module', 'controller');
         }
         if ($count > 1) {
-            $module = $action[0];
-            $controller = $action[1];
+            $module = $routes[0];
+            $controller = $routes[1];
             return compact('action', 'module', 'controller');
         }
-        if (!str_ends_with($action[0], $ctlTag)) {
-            $module = $action[0];
+        if (!str_ends_with($routes[0], $ctlTag)) {
+            $module = $routes[0];
             return compact('action', 'module', 'controller');
         }
-        $controller = $action[0];
+        $controller = $routes[0];
         $module = $this->formatFromController($controller);
         return compact('action', 'module', 'controller');
     }
