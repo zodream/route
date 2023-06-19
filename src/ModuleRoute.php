@@ -152,10 +152,20 @@ class ModuleRoute implements RouteInterface {
             return [trim(Str::firstReplace($path, $key), '/'), $key, $module];
         }
         // 默认模块
-        if (array_key_exists(static::DEFAULT_ROUTE, $modules)) {
+        if ($this->isDefaultAppEntry() && array_key_exists(static::DEFAULT_ROUTE, $modules)) {
             return [$path, '', $modules[static::DEFAULT_ROUTE]];
         }
         return [$path, '', ''];
+    }
+
+    /**
+     * 判断是否默认入口，才能启用默认模块功能
+     * @return bool
+     * @throws Exception
+     */
+    protected function isDefaultAppEntry(): bool {
+        $entry = app('app.module');
+        return empty($entry) || $entry === 'Home';
     }
 
     /**
