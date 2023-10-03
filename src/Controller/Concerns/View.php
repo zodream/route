@@ -7,7 +7,7 @@ use Zodream\Infrastructure\Contracts\Http\Output;
 
 trait View {
 
-    public File|string $layout = '';
+    protected File|string $layout = '';
 
     public function viewFactory() {
         return view();
@@ -71,8 +71,7 @@ trait View {
             ->render($file, $data);
     }
 
-    protected function findLayoutFile(): string|File
-    {
+    protected function findLayoutFile(): string|File {
         return $this->layout;
     }
 
