@@ -3,6 +3,7 @@ declare(strict_types = 1);
 namespace Zodream\Route;
 
 use Exception;
+use Zodream\Helpers\Str;
 use Zodream\Infrastructure\Contracts\Http\Input;
 use Zodream\Infrastructure\Pipeline\MiddlewareProcessor;
 use Zodream\Infrastructure\Contracts\HttpContext;
@@ -89,8 +90,7 @@ class Route implements RouteInterface {
         return new static($definition, $action, $methods,  $constraints, $defaults);
     }
 
-    public function method(array $methods): RouteInterface
-    {
+    public function method(array $methods): RouteInterface {
         $this->methods = array_map('strtoupper', $methods);
         return $this;
     }
@@ -197,24 +197,17 @@ class Route implements RouteInterface {
         return in_array($request->method(), $this->methods);
     }
 
-    protected function prepareHandle(HttpContext $context) {
-        if (isset($this->constraints['module_path'])) {
-            $context['module_path'] = $this->constraints['module_path'];
+    protected function prepareHandle(HttpContext $context): void {
+        if (isset($this->constraints[ModuleRoute::MODULE_PATH])) {
+            $context[ModuleRoute::MODULE_PATH] = $this->constraints[ModuleRoute::MODULE_PATH];
         }
-        if (isset($this->constraints['module'])) {
-            $moduleCls = $this->constraints['module'];
-            $module = new $moduleCls();
-            $context['module'] = $module;
-            $module->boot();
-            $context['view_path'] = $module->getViewPath();
+        if (isset($this->constraints[Router::MODULE])) {
+            $this->invokeModule($this->constraints[Router::MODULE], $context);
         }
     }
 
     public function handle(HttpContext $context) {
         $this->prepareHandle($context);
-        if (isset($this->constraints[Router::MODULE])) {
-            $this->invokeModule($this->constraints[Router::MODULE], $context);
-        }
         return (new MiddlewareProcessor($context))
             ->through($this->middlewares)
             ->send($context)
@@ -232,23 +225,48 @@ class Route implements RouteInterface {
         if (!$instance instanceof Module) {
             throw new ModuleException(sprintf('[%s] is not Module::class', $module));
         }
-        $context['module'] = $instance;
+        $context[Router::MODULE] = $instance;
         $instance->boot();
-        $context['view_base'] = $instance->getViewPath();
+        $context[ModuleRoute::VIEW_PATH] = $instance->getViewPath();
     }
 
     protected function invokeRegisterAction($arg, HttpContext $context) {
         list($class, $action) = explode('@', $arg);
-        if (!class_exists($class)) {
-            throw new ControllerException(sprintf('[%s] is not found', $arg));
-        }
-        $instance = BoundMethod::newClass($class, $context);
-        $context['controller'] = $instance;
-        $context['action'] = $action;
-        static::refreshDefaultView($context);
-        return BoundMethod::call([$instance, $action], $context, $this->params());
+        return static::invokeControllerAction($class, $action, $context, $this->params());
     }
 
+    /**
+     * 执行控制器及方法
+     * @param string $controller
+     * @param string $action
+     * @param HttpContext $context
+     * @param array $parameters
+     * @return mixed
+     * @throws \ReflectionException
+     */
+    public static function invokeControllerAction(string $controller,
+                                                  string $action,
+                                                  HttpContext $context, array $parameters = []): mixed {
+        if (!class_exists($controller)) {
+            throw new ControllerException(sprintf('[%s] is not found', $controller));
+        }
+        $instance = BoundMethod::newClass($controller, $context);
+        $context['controller'] = $instance;
+        $baseAction = Str::lastReplace($action, config('app.action'));
+        $context['action'] = $baseAction;
+        static::refreshDefaultView($context);
+        if (method_exists($instance, 'init')) {
+            $instance->init($context);
+        }
+        if (method_exists($instance, 'prepare')) {
+            $instance->prepare($context, $baseAction);
+        }
+        $res = BoundMethod::call([$instance, $action], $context, $parameters);
+        if (method_exists($instance, 'finalize')) {
+            $instance->finalize($context, $res);
+        }
+        return $res;
+    }
 
 
     /**
@@ -256,7 +274,7 @@ class Route implements RouteInterface {
      * @param HttpContext $context
      * @param bool $usePrefix 是否使用设置的后缀
      */
-    public static function refreshDefaultView(HttpContext $context, bool $usePrefix = false) {
+    public static function refreshDefaultView(HttpContext $context, bool $usePrefix = false): void {
         /** @var ViewFactory $view */
         $view = $context['view'];
         if (isset($context['view_base'])) {

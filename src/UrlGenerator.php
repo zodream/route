@@ -45,8 +45,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         $this->loadMiddleware();
     }
 
-    public function sync()
-    {
+    public function sync() {
         $this->setRequest($this->container->make('request'));
         $this->modulePrefix = Str::unStudly($this->container->make('app.module') ?: 'home');
         $this->setModulePath($this->container->make('module_path') ?: '');
@@ -55,8 +54,7 @@ class UrlGenerator implements UrlGeneratorInterface {
     /**
      * @param string $modulePath
      */
-    public function setModulePath(string $modulePath): void
-    {
+    public function setModulePath(string $modulePath): void {
         $this->modulePath = $modulePath;
     }
 
@@ -64,25 +62,21 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->modulePath;
     }
 
-    public function setRequest(Input $request)
-    {
+    public function setRequest(Input $request) {
         $this->request = $request;
         $this->uri = new Uri($request->url());
     }
 
-    public function full(): string
-    {
+    public function full(): string {
         return $this->request->url();
     }
 
-    public function current(): string
-    {
+    public function current(): string {
         $uri = clone $this->uri;
         return (string)$uri->setData([])->setFragment(null);
     }
 
-    public function previous(bool $fallback = false): string
-    {
+    public function previous(bool $fallback = false): string {
         $referrer = $this->request->referrer();
         if ($referrer) {
             return $referrer;
@@ -93,8 +87,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->to('/');
     }
 
-    public function to(mixed $path, array $extra = [], ?bool $secure = null, bool $encode = true): string
-    {
+    public function to(mixed $path, array $extra = [], ?bool $secure = null, bool $encode = true): string {
         if ($path instanceof Uri && empty($extra) && !empty($path->getHost())) {
             return $this->formatUrl($path);
         }
@@ -106,8 +99,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->to($path, $parameters, true);
     }
 
-    public function asset(string $path, ?bool $secure = null): string
-    {
+    public function asset(string $path, ?bool $secure = null): string {
         if ($this->isValidUrl($path)) {
             return $path;
         }
@@ -128,8 +120,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->to($path, $parameters);
     }
 
-    public function decode(string $url = ''): Uri
-    {
+    public function decode(string $url = ''): Uri {
         $uri = clone $this->uri;
         if (!empty($url)) {
             $uri->setData([])
@@ -140,13 +131,11 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->invokeMiddleware($uri, 'decode');
     }
 
-    public function encode(Uri $url): Uri
-    {
+    public function encode(Uri $url): Uri {
         return $this->invokeMiddleware($url, 'encode');
     }
 
-    public function formatScheme(?bool $secure = null): string
-    {
+    public function formatScheme(?bool $secure = null): string {
         if (! is_null($secure)) {
             return $secure ? 'https' : 'http';
         }

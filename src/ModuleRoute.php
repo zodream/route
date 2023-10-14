@@ -19,6 +19,8 @@ use Zodream\Route\Exception\NotFoundHttpException;
 class ModuleRoute implements RouteInterface {
 
     const DEFAULT_ROUTE = 'default';
+    const VIEW_PATH = 'view_base';
+    const MODULE_PATH = 'module_path';
 
     /**
      * The HTTP methods the route responds to.
@@ -45,24 +47,17 @@ class ModuleRoute implements RouteInterface {
      */
     public mixed $controller;
 
-    public function __construct()
-    {
-    }
-
-    public function middleware(...$middlewares): RouteInterface
-    {
+    public function middleware(...$middlewares): RouteInterface {
         return $this;
     }
 
-    public function method(array $methods): RouteInterface
-    {
+    public function method(array $methods): RouteInterface {
         return $this;
     }
 
-    public function handle(HttpContext $context)
-    {
+    public function handle(HttpContext $context) {
         list($path, $this->modulePath, $this->module) = $this->tryMatchModule($this->formatRoutePath($context));
-        $context['module_path'] = $this->modulePath;
+        $context[ModuleRoute::MODULE_PATH] = $this->modulePath;
         $moduleName = app('app.module') ?: 'Home';
         app()->instance('app.module', $moduleName);
         if (!empty($this->module)) {
@@ -110,10 +105,10 @@ class ModuleRoute implements RouteInterface {
         if (!$module instanceof Module) {
             return $this->invokeClass($module, $path, $context);
         }
-        $context['module'] = $module;
+        $context[Router::MODULE] = $module;
         $this->module = $module;
         $module->boot();
-        $context['view_base'] = $module->getViewPath();
+        $context[static::VIEW_PATH] = $module->getViewPath();
         // 允许模块内部进行自定义路由解析
         if (method_exists($module, 'invokeRoute')) {
             $res = $module->invokeRoute(ltrim($path, '/'), $context);
@@ -132,8 +127,7 @@ class ModuleRoute implements RouteInterface {
      * @param HttpContext $context
      * @return string
      */
-    protected function formatRoutePath(HttpContext $context): string
-    {
+    protected function formatRoutePath(HttpContext $context): string {
         return $context->path();
     }
 
@@ -241,9 +235,8 @@ class ModuleRoute implements RouteInterface {
             });
     }
 
-    protected function getControllerMiddleware(mixed $controller, string $method): array
-    {
-        if (! method_exists($controller, 'getMiddleware')) {
+    protected function getControllerMiddleware(mixed $controller, string $method): array {
+        if (!method_exists($controller, 'getMiddleware')) {
             return [];
         }
         $items = [];
@@ -319,8 +312,7 @@ class ModuleRoute implements RouteInterface {
             __(' Module no exist!'));
     }
 
-    protected static function methodExcludedByOptions($method, array $options): bool
-    {
+    protected static function methodExcludedByOptions($method, array $options): bool {
         return (isset($options['only']) && ! in_array($method, (array) $options['only'])) ||
             (! empty($options['except']) && in_array($method, (array) $options['except']));
     }
@@ -392,7 +384,7 @@ class ModuleRoute implements RouteInterface {
             return true;
         }
         $min = min(strlen($a), strlen($b));
-        if (!substr($a, 0, $min) === substr($b, 0, $min)) {
+        if (substr($a, 0, $min) !== substr($b, 0, $min)) {
             return false;
         }
         $mdlTag = '\\Module';

@@ -10,8 +10,8 @@ namespace Zodream\Route\Controller;
  * Time: 8:55
  */
 
+use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\HttpContext;
-use Zodream\Infrastructure\Http\Response;
 
 abstract class Action {
 
@@ -24,7 +24,7 @@ abstract class Action {
      * @param HttpContext $context
      * @param string $action
      * @param array $vars
-     * @return string|Response|null
+     * @return string|Output|null
      */
     public function invokeMethod(HttpContext $context, string $action, array $vars = []) {
         return null;

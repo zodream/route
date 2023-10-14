@@ -21,14 +21,14 @@ use Zodream\Template\ViewFactory;
 
 class RoutingServiceProvider extends ServiceProvider {
 
-    public function register()
-    {
+    public function register(): void {
         $this->app->singletonIf(RouterInterface::class, Router::class);
         $this->app->scopedIf(HttpContextInterface::class, HttpContext::class);
         $this->app->scopedIf(JsonResponse::class, Json::class);
         $this->app->singletonIf(UrlGeneratorInterface::class, UrlGenerator::class);
         $this->app->scopedIf(Output::class, Response::class);
         $this->app->scopedIf(Input::class, Request::class);
+        $this->app->scopedIf(ModuleRoute::class);
         $this->app->alias(Input::class, 'request');
         $this->app->alias(Output::class, 'response');
         $this->app->alias(UrlGeneratorInterface::class, 'url');

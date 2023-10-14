@@ -7,8 +7,7 @@ use Zodream\Infrastructure\Support\ServiceProvider;
 
 class RewriteServiceProvider extends ServiceProvider {
 
-    public function register()
-    {
+    public function register(): void {
         $this->app->singleton(UrlGeneratorInterface::class, UrlGenerator::class);
     }
 }

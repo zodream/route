@@ -11,13 +11,23 @@ use Zodream\Route\Controller\Module;
 use Zodream\Route\Exception\ModuleException;
 
 /**
- * 静态路由
+ * 缓存用的静态路由
  * @package Zodream\Route
  */
 class StaticRoute implements RouteInterface {
 
     protected ?array $regexMatched = null;
 
+    /**
+     * 注册静态路由
+     * @param string $controller 完整的控制器类名
+     * @param string $action 完整的方法名
+     * @param array $regex 从当前网址匹配一些参数
+     * @param array $parameters 反射方法获取的参数
+     * @param array $middlewares 执行的中间件
+     * @param array $module 模块 ['path' => 模块类名]
+     * @param array $options
+     */
     public function __construct(
         protected string $controller,
         protected string $action,
@@ -26,8 +36,7 @@ class StaticRoute implements RouteInterface {
         protected array $middlewares = [],
         protected array $module = [],
         protected array $options = []
-    )
-    {
+    ) {
 
     }
 
@@ -36,24 +45,21 @@ class StaticRoute implements RouteInterface {
      * @param array $match
      * @return $this
      */
-    public function matched(array $match) {
+    public function matched(array $match): RouteInterface {
         $this->regexMatched = $match;
         return $this;
     }
 
-    public function middleware(...$middlewares): RouteInterface
-    {
+    public function middleware(...$middlewares): RouteInterface {
         return $this;
     }
 
-    public function method(array $methods): RouteInterface
-    {
+    public function method(array $methods): RouteInterface {
         return $this;
     }
 
-    public function handle(HttpContext $context)
-    {
-        $this->invokeModule($context);
+    public function handle(HttpContext $context) {
+        static::invokeModule($this->module, $context);
         return (new MiddlewareProcessor($context))
             ->through($this->middlewares)
             ->send($context)
@@ -108,19 +114,19 @@ class StaticRoute implements RouteInterface {
         return $match['parameters'];
     }
 
-    protected function invokeModule(HttpContext $context) {
-        if (empty($this->module)) {
+    public static function invokeModule(array $moduleItems, HttpContext $context): void {
+        if (empty($moduleItems)) {
             return;
         }
-        foreach ($this->module as $path => $module) {
+        foreach ($moduleItems as $path => $module) {
             $instance = ModuleRoute::moduleInstance($module, $context);
             if (!$instance instanceof Module) {
                 throw new ModuleException(sprintf('[%s] is not Module::class', $module));
             }
-            $context['module'] = $instance;
-            $context['module_path'] = $path;
+            $context[Router::MODULE] = $instance;
+            $context[ModuleRoute::MODULE_PATH] = $path;
             $instance->boot();
-            $context['view_base'] = $instance->getViewPath();
+            $context[ModuleRoute::VIEW_PATH] = $instance->getViewPath();
         }
     }
 }

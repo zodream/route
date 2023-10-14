@@ -38,7 +38,7 @@ class RouteRegex {
 
                 if (isset(static::REGEX_PATTERN[$replace])) {
                     $pattern = '/' . static::REGEX_PATTERN[$replace];
-                } elseif (substr($replace, 0, 1) == '(' && substr($replace, -1, 1) == ')') {
+                } elseif (str_starts_with($replace, '(') && str_ends_with($replace, ')')) {
                     $pattern = '/' . $replace;
                 }
             } elseif (isset(static::REGEX_PATTERN[$parameter])) {

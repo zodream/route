@@ -36,8 +36,7 @@ abstract class Controller {
      * @param array $options
      * @return static
      */
-    public function middleware(Closure|array|string $middleware, array $options = [])
-    {
+    public function middleware(Closure|array|string $middleware, array $options = []) {
         foreach ((array) $middleware as $m) {
             $this->middleware[] = [
                 'middleware' => $m,
@@ -52,8 +51,7 @@ abstract class Controller {
      *
      * @return array
      */
-    public function getMiddleware(): array
-    {
+    public function getMiddleware(): array {
         return $this->middleware;
     }
 
@@ -64,8 +62,7 @@ abstract class Controller {
      * @param  array  $parameters
      * @return Output
      */
-    public function callMethod(string $method, array $parameters = [])
-    {
+    public function callMethod(string $method, array $parameters = []) {
         return call_user_func_array([$this, $method], $parameters);
     }
 
@@ -85,7 +82,7 @@ abstract class Controller {
             $controller = new $controller;
         }
         return BoundMethod::call([$controller, $actionName.config('app.action')],
-            $this->httpContext(), $parameters);;
+            $this->httpContext(), $parameters);
     }
 
 }

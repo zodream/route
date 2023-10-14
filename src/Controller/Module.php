@@ -13,6 +13,7 @@ use Zodream\Database\Migrations\Migration;
 use Zodream\Disk\Directory;
 use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\HttpContext;
+use Zodream\Route\ModuleRoute;
 use Zodream\Route\Router;
 
 abstract class Module extends Action {
@@ -61,7 +62,7 @@ abstract class Module extends Action {
     /**
      * 安装
      */
-    public function install() {
+    public function install(): void {
         $migration = $this->getMigration();
         if (!$migration instanceof Migration) {
             return;
@@ -72,7 +73,7 @@ abstract class Module extends Action {
     /**
      * 卸载
      */
-    public function uninstall() {
+    public function uninstall(): void {
         $migration = $this->getMigration();
         if (!$migration instanceof Migration) {
             return;
@@ -83,7 +84,7 @@ abstract class Module extends Action {
     /**
      * 填充测试数据
      */
-    public function seeder() {
+    public function seeder(): void {
         $migration = $this->getMigration();
         if (!$migration instanceof Migration) {
             return;
@@ -119,14 +120,14 @@ abstract class Module extends Action {
      */
     public function invokeModule($module, $path) {
         $context = app(HttpContext::class);
-        return $context->make('route')
+        return $context->make(ModuleRoute::class)
             ->invokeModule($path, $module, $context);
     }
 
     public static function url($path = null, $parameters = [], $secure = null) {
         $url = false;
         $args = func_get_args();
-        app(HttpContext::class)->make('route')->module(static::class, function () use (&$url, $args) {
+        app(HttpContext::class)->make(ModuleRoute::class)->module(static::class, function () use (&$url, $args) {
             $url = url()->to(...$args);
         });
         if ($url === false) {
