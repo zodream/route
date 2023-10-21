@@ -61,7 +61,7 @@ class ModuleRoute implements RouteInterface {
         $moduleName = app('app.module') ?: 'Home';
         app()->instance('app.module', $moduleName);
         if (!empty($this->module)) {
-            return $this->invokeModule($path, $this->module, $context);
+            return $this->invokeModule($path, $this->module, $context, $moduleName);
         }
         return $this->invokePath($path, 'Service\\'.$moduleName, $context);
     }
@@ -100,7 +100,7 @@ class ModuleRoute implements RouteInterface {
         return $this->invokeClass($class, $action, $context);
     }
 
-    public function invokeModule(string $path, string $module, HttpContext $context) {
+    public function invokeModule(string $path, string $module, HttpContext $context, string $entryModule = '') {
         $module = static::moduleInstance($module, $context);
         if (!$module instanceof Module) {
             return $this->invokeClass($module, $path, $context);
@@ -120,6 +120,9 @@ class ModuleRoute implements RouteInterface {
             }
         }
         $baseName = $module->getControllerNamespace();
+        if (!empty($entryModule) && $entryModule !== 'Home') {
+            $baseName .= '\\'.$entryModule;
+        }
         return $this->invokePath($path, $baseName, $context);
     }
 

@@ -4,6 +4,7 @@ namespace Zodream\Route\Controller\Concerns;
 
 use Zodream\Disk\File;
 use Zodream\Infrastructure\Contracts\Http\Output;
+use Zodream\Route\Route;
 
 trait View {
 
@@ -87,7 +88,7 @@ trait View {
         }
         $first = substr($name, 0, 1);
         if ($first !== '@' && $first !== '/') {
-            $name = $context['view_controller_path'].$name;
+            $name = $context[Route::VIEW_CTL_PATH].$name;
         }
         return $name;
     }

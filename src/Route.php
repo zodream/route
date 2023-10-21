@@ -15,6 +15,8 @@ use Zodream\Template\ViewFactory;
 
 class Route implements RouteInterface {
 
+    const VIEW_CTL_PATH = 'view_controller_path';
+
     const HTTP_METHODS = ['OPTIONS', 'HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'TRACE', 'CONNECT'];
     /**
      * @var callable
@@ -280,8 +282,8 @@ class Route implements RouteInterface {
         if (isset($context['view_base'])) {
             $view->setDirectory($context['view_base']);
         }
-        $context['view_controller_path'] = static::getViewFolder($context['module'] ?? null, $context['controller'], $usePrefix);
-        $view->setDefaultFile($context['view_controller_path'].$context['action']);
+        $context[static::VIEW_CTL_PATH] = static::getViewFolder($context['module'] ?? null, $context['controller'], $usePrefix);
+        $view->setDefaultFile($context[static::VIEW_CTL_PATH].$context['action']);
         url()->sync();
     }
 
@@ -296,14 +298,21 @@ class Route implements RouteInterface {
     protected static function getViewFolder($module, $controller, bool $usePrefix = false): string {
         $cls = get_class($controller);
         $prefix = config('app.controller');
-        if (!empty($prefix)) {
-            $cls = preg_replace('/'. $prefix .'$/', '', $cls);
+        $end = strlen($cls);
+        $begin = 0;
+        if (!empty($prefix) && str_ends_with($cls, $prefix)) {
+            $end = strlen($cls) - strlen($prefix);
         }
         if (!$usePrefix || !empty($module)) {
-            $pattern = '.*?Service.(.+)';
+            $search = 'Service\\';
         } else {
-            $pattern = '.*?Service.'.app('app.module').'.(.*)';
+            $search = 'Service\\'.app('app.module').'\\';
         }
-        return preg_replace('/^'.$pattern.'$/', '$1', $cls).'/';
+        if (str_starts_with($cls, $search)) {
+            $begin = strlen($search);
+        } elseif (($i = strpos($cls, '\\'.$search)) !== false) {
+            $begin = $i + strlen($search) + 1;
+        }
+        return substr($cls, $begin, $end - $begin).'\\';
     }
 }
