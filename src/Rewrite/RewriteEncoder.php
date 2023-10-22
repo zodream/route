@@ -9,7 +9,9 @@ class RewriteEncoder implements URLEncoder {
 
     protected string $rewriteSeparator = '0_0';
     protected string $rewriteExtension = '';
+    protected string $routeQueryKey = '';
     public function __construct(Repository $config) {
+        $this->routeQueryKey = (string)config('route.route_key', '');
         $this->rewriteExtension = (string)$config->get('route.rewrite', '');
         $separator = $config->get('route.rewrite_separator', '');
         if (!empty($separator)) {
@@ -19,15 +21,14 @@ class RewriteEncoder implements URLEncoder {
 
 
 
-    public function encode(Uri $url, callable $next): Uri
-    {
+    public function encode(Uri $url, callable $next): Uri {
+        /** @var Uri $url */
         $url = $next($url);
         list($path, $params) = $this->enRewrite($url->getPath(), $url->getData());
         return $url->setPath($path)->setData($params);
     }
 
-    public function decode(Uri $url, callable $next): Uri
-    {
+    public function decode(Uri $url, callable $next): Uri {
         list($path, $params) = $this->deRewrite($url->getPath());
         return $next($url->setPath($path)->addData($params));
     }
@@ -38,7 +39,13 @@ class RewriteEncoder implements URLEncoder {
      * @param array $args
      * @return array
      */
-    public function enRewrite($path, array $args) {
+    public function enRewrite($path, array $args): array {
+        if (!empty($this->routeQueryKey) && isset($args[$this->routeQueryKey])) {
+            return [
+                $path,
+                $args
+            ];
+        }
         list($path, $can) = $this->filterPath($path);
         if (!$can || (empty($path) && empty($args)) || empty($this->rewriteExtension)) {
             return [

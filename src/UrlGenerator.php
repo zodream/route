@@ -26,6 +26,8 @@ class UrlGenerator implements UrlGeneratorInterface {
     protected string $modulePath = '';
 
     protected string $modulePrefix = '';
+
+    protected string $routeQueryKey = '';
     /**
      * @var Uri
      */
@@ -37,10 +39,10 @@ class UrlGenerator implements UrlGeneratorInterface {
     protected array $encoders = [];
     protected MiddlewareProcessor $processor;
 
-    public function __construct(HttpContext $context)
-    {
+    public function __construct(HttpContext $context) {
         $this->processor = new MiddlewareProcessor($context);
         $this->container = $context;
+        $this->routeQueryKey = (string)config('route.route_key', '');
         $this->sync();
         $this->loadMiddleware();
     }
@@ -62,7 +64,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->modulePath;
     }
 
-    public function setRequest(Input $request) {
+    public function setRequest(Input $request): void {
         $this->request = $request;
         $this->uri = new Uri($request->url());
     }
@@ -201,7 +203,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return str_starts_with($path, '#') || str_starts_with($path, 'javascript:');
     }
 
-    public function useCustomScript(bool|string $script = 'index.php') {
+    public function useCustomScript(bool|string $script = 'index.php'): static {
         $this->useScript = $script;
         return $this;
     }
@@ -209,8 +211,8 @@ class UrlGenerator implements UrlGeneratorInterface {
     /**
      * 获取真实的uri 不经过重写的
      * @param null $path
-     * @param null $extra
-     * @param null $secure
+     * @param array|bool|null $extra
+     * @param bool|null $secure
      * @return string|Uri
      */
     public function toRealUri(mixed $path = null, array|bool $extra = null, ?bool $secure = null) {
@@ -249,8 +251,7 @@ class UrlGenerator implements UrlGeneratorInterface {
      * @param array|string $file
      * @return Uri
      */
-    public function createUri(mixed $file): Uri
-    {
+    public function createUri(mixed $file): Uri {
         $uri = new Uri();
         if (!is_array($file)) {
             return $uri->decode($this->addScript($this->getPath($file)));
@@ -285,7 +286,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return '/'.$this->useScript;
     }
 
-    protected function addScript(string $path) {
+    protected function addScript(string $path): string {
         if (strpos($path, '.') > 0
             || str_starts_with($path, '/')) {
             return $path;
@@ -293,6 +294,9 @@ class UrlGenerator implements UrlGeneratorInterface {
         $name = $this->getCurrentScript();
         if ($name === '/index.php') {
             return '/'.$path;
+        }
+        if (!empty($this->routeQueryKey)) {
+            return sprintf('%s?%s=%s', $name, $this->routeQueryKey, $path);
         }
         return $name.'/'.$path;
     }
@@ -321,7 +325,7 @@ class UrlGenerator implements UrlGeneratorInterface {
 
     /**
      * 添加当前模块路径
-     * @param $path
+     * @param string $path
      * @return string
      */
     protected function addModulePath(string $path): string {
@@ -331,7 +335,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->modulePath .'/'.$this->addModulePrefix($path);
     }
 
-    protected function addModulePrefix(string $path) {
+    protected function addModulePrefix(string $path): string {
         if (empty($path) || !str_starts_with($path, '@')) {
             return $path;
         }
@@ -358,8 +362,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->processor->send($source)->via($action)->thenReturn();
     }
 
-    private function loadMiddleware()
-    {
+    private function loadMiddleware() {
         $items = [];
         $encoders = array_merge($this->encoders, (array)config('route.encoders'));
         foreach ($encoders as $item) {
