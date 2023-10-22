@@ -20,8 +20,8 @@ class Rest implements JsonResponse {
         if (!is_array($message)) {
             $message = ['message' => $message];
         }
-        if ($data instanceof ArrayAble) {
-            $data = $data->toArray();
+        if ($data instanceof ArrayAble || is_array($data)) {
+            $data = Arr::toArray($data);
         }
         return $this->renderEncode(array_merge(array(
             'data' => $data
