@@ -52,13 +52,12 @@ class RestResponse implements PreResponse, Output {
      * @param mixed $data
      * @return RestResponse
      */
-    public function setData(mixed $data) {
+    public function setData(mixed $data): static {
         $this->data = $data;
         return $this;
     }
 
-    public function writeLine(mixed $messages)
-    {
+    public function writeLine(mixed $messages): void {
         $this->setData($messages);
     }
 
@@ -168,26 +167,23 @@ class RestResponse implements PreResponse, Output {
         return $this->text();
     }
 
-    public function toArray() {
+    public function toArray(): array {
         return Arr::toArray($this->data);
     }
 
-    public function send()
-    {
+    public function send(): bool {
         $output = $this->app->make('response');
         $this->ready($output);
         return $output->send();
     }
 
-    public function statusCode(int $code, string $statusText = ''): Output
-    {
+    public function statusCode(int $code, string $statusText = ''): Output {
         $output = $this->app->make('response');
         $output->statusCode($code, $statusText);
         return $output;
     }
 
-    public function allowCors()
-    {
+    public function allowCors(): Output {
         $output = $this->app->make('response');
         $output->allowCors();
         return $output;
