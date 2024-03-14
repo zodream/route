@@ -137,6 +137,8 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->invokeMiddleware($url, 'encode');
     }
 
+
+
     public function formatScheme(?bool $secure = null): string {
         if (! is_null($secure)) {
             return $secure ? 'https' : 'http';
