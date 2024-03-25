@@ -148,7 +148,7 @@ class RewriteEncoder implements URLEncoder {
      * @param $path
      * @return array
      */
-    public function deRewrite($path) {
+    public function deRewrite($path): array {
         if (empty($path)) {
             return ['', []];
         }
