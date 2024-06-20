@@ -149,21 +149,13 @@ class ModuleRoute implements RouteInterface {
             return [trim(Str::firstReplace($path, $key), '/'), $key, $module];
         }
         // 默认模块
-        if ($this->isDefaultAppEntry() && array_key_exists(static::DEFAULT_ROUTE, $modules)) {
+        if (static::isDefaultAppEntry() && array_key_exists(static::DEFAULT_ROUTE, $modules)) {
             return [$path, '', $modules[static::DEFAULT_ROUTE]];
         }
         return [$path, '', ''];
     }
 
-    /**
-     * 判断是否默认入口，才能启用默认模块功能
-     * @return bool
-     * @throws Exception
-     */
-    protected function isDefaultAppEntry(): bool {
-        $entry = app('app.module');
-        return empty($entry) || $entry === 'Home';
-    }
+
 
     /**
      * @param string $class
@@ -454,5 +446,15 @@ class ModuleRoute implements RouteInterface {
     protected function formatFromController(string $ctr): string {
         $i = strpos($ctr, 'Service');
         return $i > 0 ? substr($ctr, 0, $i) : '';
+    }
+
+    /**
+     * 判断是否默认入口，才能启用默认模块功能
+     * @return bool
+     * @throws Exception
+     */
+    public static function isDefaultAppEntry(): bool {
+        $entry = app('app.module');
+        return empty($entry) || $entry === 'Home';
     }
 }
