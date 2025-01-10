@@ -39,7 +39,7 @@ trait View {
      * @param callable|null $layoutCallback
      * @return Output
      */
-    public function renderIfPjax(string|array $name = '', array $data = [], ?callable $layoutCallback = null) {
+    public function renderIfPjax(string|array $name = '', array $data = [], callable|null $layoutCallback = null) {
         if (is_array($name)) {
             list($data, $layoutCallback, $name) = [$name, $data, null];
         }

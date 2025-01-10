@@ -16,7 +16,7 @@ trait BatchAction {
      * @return array
      * @example
      */
-    public function invokeBatch(array $routes, ?array $postData = null): array {
+    public function invokeBatch(array $routes, array|null $postData = null): array {
         /** @var HttpContext $context */
         $context = $this->httpContext();
         if (is_null($postData)) {

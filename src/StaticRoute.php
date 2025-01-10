@@ -16,7 +16,7 @@ use Zodream\Route\Exception\ModuleException;
  */
 class StaticRoute implements RouteInterface {
 
-    protected ?array $regexMatched = null;
+    protected array|null $regexMatched = null;
 
     /**
      * 注册静态路由

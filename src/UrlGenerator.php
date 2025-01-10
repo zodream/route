@@ -19,7 +19,7 @@ class UrlGenerator implements UrlGeneratorInterface {
     /**
      * @var Input|null
      */
-    protected ?Input $request = null;
+    protected Input|null $request = null;
     /**
      * @var string
      */
@@ -31,7 +31,7 @@ class UrlGenerator implements UrlGeneratorInterface {
     /**
      * @var Uri
      */
-    protected ?Uri $uri = null;
+    protected Uri|null $uri = null;
     protected bool|string $useScript = false;
     /**
      * @var URLEncoder[]
@@ -89,7 +89,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->to('/');
     }
 
-    public function to(mixed $path, array $extra = [], ?bool $secure = null, bool $encode = true): string {
+    public function to(mixed $path, array $extra = [], bool|null $secure = null, bool $encode = true): string {
         if ($path instanceof Uri && empty($extra) && !empty($path->getHost())) {
             return $this->formatUrl($path);
         }
@@ -101,7 +101,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         return $this->to($path, $parameters, true);
     }
 
-    public function asset(string $path, ?bool $secure = null): string {
+    public function asset(string $path, bool|null $secure = null): string {
         if ($this->isValidUrl($path)) {
             return $path;
         }
@@ -139,7 +139,7 @@ class UrlGenerator implements UrlGeneratorInterface {
 
 
 
-    public function formatScheme(?bool $secure = null): string {
+    public function formatScheme(bool|null $secure = null): string {
         if (! is_null($secure)) {
             return $secure ? 'https' : 'http';
         }
@@ -150,7 +150,7 @@ class UrlGenerator implements UrlGeneratorInterface {
      * @param string|null $search
      * @return bool
      */
-    public function hasUri(?string $search = null): bool {
+    public function hasUri(string|null $search = null): bool {
         $url = $this->uri->getPath();
         if (is_null($search) && $url === '/') {
             return true;
@@ -217,7 +217,7 @@ class UrlGenerator implements UrlGeneratorInterface {
      * @param bool|null $secure
      * @return string|Uri
      */
-    public function toRealUri(mixed $path = null, array|bool $extra = null, ?bool $secure = null) {
+    public function toRealUri(mixed $path = null, array|bool|null $extra = null, bool|null $secure = null) {
         if (is_string($path) && ($this->isSpecialUrl($path) || $this->isValidUrl($path))) {
             return $path;
         }
@@ -230,7 +230,7 @@ class UrlGenerator implements UrlGeneratorInterface {
      * @param bool|null $secure
      * @return Uri
      */
-    protected function toUri(mixed $path, array|bool $extra = null, ?bool $secure = null): Uri {
+    protected function toUri(mixed $path, array|bool|null $extra = null, bool|null $secure = null): Uri {
         if (!$path instanceof Uri) {
             $path = $this->createUri($path);
         }

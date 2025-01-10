@@ -66,7 +66,7 @@ class ModuleRoute implements RouteInterface {
         return $this->invokePath($path, 'Service\\'.$moduleName, $context);
     }
 
-    public function module(string $name, callable $handle = null, array $modules = []) {
+    public function module(string $name, callable|null $handle = null, array $modules = []) {
         if (empty($modules)) {
             $modules = config('route.modules', []);
         }

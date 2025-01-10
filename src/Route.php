@@ -163,7 +163,7 @@ class Route implements RouteInterface {
      * @param string|null $basePath
      * @return bool
      */
-    public function match(string $path, ?string $basePath = null) {
+    public function match(string $path, string|null $basePath = null) {
         if ($basePath !== null) {
             $length = strlen($basePath);
             if (substr($path, 0, $length) !== $basePath) {
