@@ -42,7 +42,7 @@ class BoundMethod extends BaseBound {
         }
         $type = $parameter->getType();
         if (!($type instanceof \ReflectionUnionType)) {
-            return static::formatValue($type->getName(), $value);
+            return static::changeType($value, $type->getName());
         }
         $types = [];
         $hasArr = false;
@@ -84,10 +84,10 @@ class BoundMethod extends BaseBound {
                 return $value;
             }
         }
-        return self::formatValue(end($types), $value);
+        return self::changeType($value, end($types));
     }
 
-    public static function formatValue(string $type, $value) {
+    public static function changeType(mixed $value, string $type): mixed {
         return match ($type) {
             'int' => intval($value),
             'float' => floatval($value),
