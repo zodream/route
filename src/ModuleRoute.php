@@ -27,7 +27,7 @@ class ModuleRoute implements RouteInterface {
      *
      * @var array
      */
-    public array $methods;
+    public array $methods = [];
 
     /**
      * The route action array.
