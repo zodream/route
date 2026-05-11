@@ -68,7 +68,7 @@ abstract class Controller {
 
     /**
      * 加载其他控制器的方法
-     * @param $controller
+     * @param mixed $controller
      * @param string $actionName
      * @param array $parameters
      * @return mixed
