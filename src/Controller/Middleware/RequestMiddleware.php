@@ -24,7 +24,7 @@ class RequestMiddleware implements MiddlewareInterface {
         return $next($context);
     }
 
-    protected function checkRules($controller, string $action, HttpContext $context) {
+    protected function checkRules(mixed $controller, string $action, HttpContext $context) {
         if (!method_exists($controller, 'rules')) {
             return true;
         }
