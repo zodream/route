@@ -33,7 +33,7 @@ class RequestMiddleware implements MiddlewareInterface {
             if ($action === $key) {
                 return $this->processRole($item, $context);
             }
-            if (is_integer($key) && is_array($item)) {
+            if (is_int($key) && is_array($item)) {
                 $key = (array)array_shift($item);
                 if (in_array($action, $key)) {
                     return $this->processRole($item, $context);

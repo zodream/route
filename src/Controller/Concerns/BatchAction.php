@@ -27,7 +27,7 @@ trait BatchAction {
         $data = [];
         foreach ($postData as $key => $params) {
             $path = $key;
-            if (is_integer($key) && !empty($params) && is_array($params) && isset($params['method'])) {
+            if (is_int($key) && !empty($params) && is_array($params) && isset($params['method'])) {
                 $path = $params['method'];
                 $params = isset($params['data']);
             }

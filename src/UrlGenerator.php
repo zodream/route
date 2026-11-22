@@ -261,7 +261,7 @@ class UrlGenerator implements UrlGeneratorInterface {
         $path = false;
         $data = [];
         foreach ($file as $key => $item) {
-            if (is_integer($key)) {
+            if (is_int($key)) {
                 $path = $item;
                 continue;
             }
