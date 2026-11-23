@@ -35,7 +35,7 @@ class BoundMethod extends BaseBound {
         }
     }
 
-    protected static function parseParameter($value, ReflectionParameter $parameter) {
+    protected static function parseParameter(mixed $value, ReflectionParameter $parameter) {
         if (!$parameter->hasType()) {
             return $value;
         }
@@ -56,7 +56,7 @@ class BoundMethod extends BaseBound {
         return static::formatUnionValue($hasArr, $types, $value);
     }
 
-    public static function formatUnionValue(bool $hasArr, array $types, $value) {
+    public static function formatUnionValue(bool $hasArr, array $types, mixed $value) {
         if ($hasArr && is_array($value)) {
             return array_map(function ($val)  use ($types) {
                 return static::formatAnyType($types, $val);
@@ -65,7 +65,7 @@ class BoundMethod extends BaseBound {
         return static::formatAnyType($types, $value);
     }
 
-    protected static function formatAnyType(array $types, $value) {
+    protected static function formatAnyType(array $types, mixed $value) {
         foreach ($types as $type) {
             if ($type === 'float' && is_numeric($value)) {
                 return floatval($value);
