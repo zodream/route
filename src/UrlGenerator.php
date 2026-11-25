@@ -95,7 +95,10 @@ class UrlGenerator implements UrlGeneratorInterface {
             return $this->formatUrl($path, $encode && $path->getHost() === $this->uri->getHost());
         }
         $uri = $this->toRealUri($path, $extra, $secure);
-        return $this->formatUrl($uri, $encode && $uri->getHost() === $this->uri->getHost());
+        if ($uri instanceof Uri && $encode) {
+            $encode = $uri->getHost() === $this->uri->getHost();
+        }
+        return $this->formatUrl($uri, $encode);
     }
 
     public function secure(mixed $path, array $parameters = []): string {
