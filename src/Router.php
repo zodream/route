@@ -73,7 +73,7 @@ class Router implements RouterInterface {
         return trim(trim($this->globalRoutePackage, '\\') . '\\' . $package, '\\');
     }
 
-    protected function loadRoutes($routes) {
+    protected function loadRoutes(mixed $routes) {
         if ($routes instanceof Closure) {
             $routes($this);
         } else {
@@ -89,7 +89,7 @@ class Router implements RouterInterface {
      * @param $action
      * @return Route
      */
-    public function addRoute(array $method, string $uri, $action): RouteInterface {
+    public function addRoute(array $method, string $uri, mixed $action): RouteInterface {
         if (is_string($action)) {
             $action = $this->addPackage($action);
         }
@@ -187,7 +187,7 @@ class Router implements RouterInterface {
         return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
     }
 
-    public function middleware(...$middlewares): RouterInterface {
+    public function middleware(mixed ...$middlewares): RouterInterface {
         $this->middlewares = array_merge($this->middlewares, $middlewares);
         return $this;
     }

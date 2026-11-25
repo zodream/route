@@ -16,7 +16,7 @@ trait StaticAssetsRoute {
         ];
     }
 
-    public function invokeRoute($path) {
+    public function invokeRoute(string $path) {
         $path = trim($path, '/');
         if (empty($path)) {
             return;

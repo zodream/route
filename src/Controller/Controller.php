@@ -74,7 +74,7 @@ abstract class Controller {
      * @return mixed
      */
     public function forward(
-        $controller,
+        mixed $controller,
         string $actionName = 'index',
         array $parameters = []
     ) {

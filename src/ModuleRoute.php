@@ -47,7 +47,7 @@ class ModuleRoute implements RouteInterface {
      */
     public mixed $controller;
 
-    public function middleware(...$middlewares): RouteInterface {
+    public function middleware(mixed ...$middlewares): RouteInterface {
         return $this;
     }
 
@@ -307,7 +307,7 @@ class ModuleRoute implements RouteInterface {
             __(' Module no exist!'));
     }
 
-    protected static function methodExcludedByOptions($method, array $options): bool {
+    protected static function methodExcludedByOptions(string $method, array $options): bool {
         return (isset($options['only']) && ! in_array($method, (array) $options['only'])) ||
             (! empty($options['except']) && in_array($method, (array) $options['except']));
     }

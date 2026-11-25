@@ -50,7 +50,7 @@ class StaticRoute implements RouteInterface {
         return $this;
     }
 
-    public function middleware(...$middlewares): RouteInterface {
+    public function middleware(mixed ...$middlewares): RouteInterface {
         return $this;
     }
 
@@ -78,7 +78,7 @@ class StaticRoute implements RouteInterface {
         return $this->call([$instance, $this->action], $context['request'], $parameters);
     }
 
-    protected function call($callback, Input $input, array $parameters = []) {
+    protected function call(callable $callback, Input $input, array $parameters = []) {
         $items = [];
         foreach ($this->parameters as $item) {
             if (array_key_exists($item['name'], $parameters)) {

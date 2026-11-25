@@ -5,14 +5,14 @@ namespace Zodream\Route\Attributes;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class Route {
+readonly class Route {
 
     public function __construct(
-        public string $path,
-        public array $method = [],
-        public array $middleware = [],
-        public array $module = [],
-        public array $options = [])
+        public readonly string $path,
+        public readonly array $method = [],
+        public readonly array $middleware = [],
+        public readonly array $module = [],
+        public readonly array $options = [])
     {
 
     }

@@ -10,12 +10,12 @@ use Zodream\Infrastructure\Contracts\Response\JsonResponse;
 
 class Rest implements JsonResponse {
 
-    public function render($data): Output
+    public function render(mixed $data): Output
     {
         return $this->renderEncode(Arr::toArray($data));
     }
 
-    public function renderData($data, string $message = ''): Output
+    public function renderData(mixed $data, string $message = ''): Output
     {
         if (!is_array($message)) {
             $message = ['message' => $message];
@@ -61,7 +61,7 @@ class Rest implements JsonResponse {
         return RestResponse::formatType();
     }
 
-    protected function renderEncode($data) {
+    protected function renderEncode(mixed $data) {
         return RestResponse::create($data, $this->format());
     }
 
@@ -73,7 +73,7 @@ class Rest implements JsonResponse {
      * @return RestResponse
      * @throws \Exception
      */
-    protected function renderEnvelope($data, int $status = 200, array $headers = []) {
+    protected function renderEnvelope(mixed $data, int $status = 200, array $headers = []) {
         $data = [
             'status' => $status,
             'response' => $data

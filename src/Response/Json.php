@@ -9,7 +9,7 @@ use Zodream\Infrastructure\Contracts\Response\JsonResponse;
 
 class Json implements JsonResponse {
 
-    public function render($data): Output
+    public function render(mixed $data): Output
     {
         if (is_array($data)
             && isset($data['code'])
@@ -23,7 +23,7 @@ class Json implements JsonResponse {
         ]);
     }
 
-    public function renderData($data, string $message = ''): Output
+    public function renderData(mixed $data, string $message = ''): Output
     {
         if (!is_array($message)) {
             $message = ['message' => $message];
@@ -74,7 +74,7 @@ class Json implements JsonResponse {
         return RestResponse::formatType();
     }
 
-    protected function renderEncode($data) {
+    protected function renderEncode(mixed $data) {
         return $this->renderResponse($data, $this->format());
     }
     /**
@@ -84,7 +84,7 @@ class Json implements JsonResponse {
      * @return Output
      * @throws \Exception
      */
-    public function renderResponse($data, string $type = 'json'): Output {
+    public function renderResponse(mixed $data, string $type = 'json'): Output {
         $response = response();
         switch (strtolower($type)) {
             case 'xml':

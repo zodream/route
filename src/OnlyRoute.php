@@ -27,7 +27,7 @@ class OnlyRoute implements RouteInterface {
 
     }
 
-    public function middleware(...$middlewares): RouteInterface {
+    public function middleware(mixed ...$middlewares): RouteInterface {
         return $this;
     }
 

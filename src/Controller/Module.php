@@ -11,10 +11,9 @@ namespace Zodream\Route\Controller;
  */
 use Zodream\Database\Migrations\Migration;
 use Zodream\Disk\Directory;
-use Zodream\Infrastructure\Contracts\Http\Output;
 use Zodream\Infrastructure\Contracts\HttpContext;
 use Zodream\Route\ModuleRoute;
-use Zodream\Route\Router;
+use Zodream\Route\Route;
 
 abstract class Module extends Action {
 
@@ -99,17 +98,9 @@ abstract class Module extends Action {
         return;
     }
 
-    /**
-     * 执行控制器的指定方法
-     * @param $class
-     * @param $action
-     * @param array $vars
-     * @return Output
-     * @throws \Exception
-     */
-    public function invokeController($class, $action, array $vars = []) {
-        return app(Router::class)
-            ->invokeController($class, $action, $vars);
+    public function invokeAction(string $controller, string $action, array $parameters = []) {
+        $context = app(HttpContext::class);
+        return Route::invokeControllerAction($controller, $action, $context, $parameters);
     }
 
     /**
@@ -118,13 +109,13 @@ abstract class Module extends Action {
      * @return mixed
      * @throws \Exception
      */
-    public function invokeModule($module, $path) {
+    public function invokeModule(string $module, string $path) {
         $context = app(HttpContext::class);
         return $context->make(ModuleRoute::class)
             ->invokeModule($path, $module, $context);
     }
 
-    public static function url($path = null, $parameters = [], $secure = null) {
+    public static function url(mixed $path, array $extra = [], bool|null $secure = null) {
         $url = false;
         $args = func_get_args();
         app(HttpContext::class)->make(ModuleRoute::class)->module(static::class, function () use (&$url, $args) {

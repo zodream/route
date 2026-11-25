@@ -30,5 +30,5 @@ abstract class Action {
         return null;
     }
     
-    public function finalize(HttpContext $context, $response) {  }
+    public function finalize(HttpContext $context, mixed $response) {  }
 }

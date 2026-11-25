@@ -51,7 +51,7 @@ class RequestMiddleware implements MiddlewareInterface {
      * @param HttpContext $context
      * @return bool
      */
-    protected function processRole($role, HttpContext $context) {
+    protected function processRole(mixed $role, HttpContext $context) {
         if (is_callable($role)) {
             return call_user_func($role, $context);
         }
@@ -102,7 +102,7 @@ class RequestMiddleware implements MiddlewareInterface {
         return true;
     }
 
-    protected function checkRequestMethod($controller, string $action, HttpContext $context): bool {
+    protected function checkRequestMethod(mixed $controller, string $action, HttpContext $context): bool {
         if (!method_exists($controller, 'methods')) {
             return true;
         }

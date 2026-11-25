@@ -91,10 +91,11 @@ class UrlGenerator implements UrlGeneratorInterface {
 
     public function to(mixed $path, array $extra = [], bool|null $secure = null, bool $encode = true): string {
         if ($path instanceof Uri && empty($extra) && !empty($path->getHost())) {
-            return $this->formatUrl($path);
+            // 其他网站的网址不应该被编码
+            return $this->formatUrl($path, $encode && $path->getHost() === $this->uri->getHost());
         }
         $uri = $this->toRealUri($path, $extra, $secure);
-        return $this->formatUrl($uri, $encode);
+        return $this->formatUrl($uri, $encode && $uri->getHost() === $this->uri->getHost());
     }
 
     public function secure(mixed $path, array $parameters = []): string {
@@ -195,7 +196,7 @@ class UrlGenerator implements UrlGeneratorInterface {
     }
 
     public function isValidUrl(string $path): bool {
-        if (! Str::startsWith($path, ['#', '//', 'mailto:', 'tel:', 'http://', 'https://'])) {
+        if (!Str::startsWith($path, ['#', '//', 'mailto:', 'tel:', 'http://', 'https://'])) {
             return filter_var($path, FILTER_VALIDATE_URL) !== false;
         }
         return true;
@@ -218,8 +219,14 @@ class UrlGenerator implements UrlGeneratorInterface {
      * @return string|Uri
      */
     public function toRealUri(mixed $path = null, array|bool|null $extra = null, bool|null $secure = null) {
-        if (is_string($path) && ($this->isSpecialUrl($path) || $this->isValidUrl($path))) {
+        if (is_string($path) && $this->isSpecialUrl($path)) {
             return $path;
+        }
+        if (is_string($path) && $this->isValidUrl($path)) {
+            if (empty($extra)) {
+                return $path;
+            }
+            return $this->toUri(new Uri($path), $extra, $secure);
         }
         return $this->toUri($path, $extra, $secure);
     }

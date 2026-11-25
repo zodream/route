@@ -20,7 +20,7 @@ trait Json {
      * @param $data
      * @return Output
      */
-    public function render($data): Output
+    public function render(mixed $data): Output
     {
         return $this->jsonFactory()->render($data);
     }

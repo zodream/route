@@ -39,7 +39,7 @@ class RewriteEncoder implements URLEncoder {
      * @param array $args
      * @return array
      */
-    public function enRewrite($path, array $args): array {
+    public function enRewrite(string|null $path, array $args): array {
         if (!empty($this->routeQueryKey) && isset($args[$this->routeQueryKey])) {
             return [
                 $path,
@@ -64,7 +64,7 @@ class RewriteEncoder implements URLEncoder {
         return [$path, true];
     }
 
-    protected function canRewrite($path, array $data): bool {
+    protected function canRewrite(string|null $path, array $data): bool {
         if (empty($this->rewriteExtension)) {
             return false;
         }
@@ -148,7 +148,7 @@ class RewriteEncoder implements URLEncoder {
      * @param $path
      * @return array
      */
-    public function deRewrite($path): array {
+    public function deRewrite(string|null $path): array {
         if (empty($path)) {
             return ['', []];
         }
@@ -204,7 +204,7 @@ class RewriteEncoder implements URLEncoder {
      * @param $values
      * @return array
      */
-    private function pairValues($values): array {
+    private function pairValues(array $values): array {
         $args = array();
         for ($i = 0, $len = count($values); $i < $len; $i += 2) {
             if (isset($values[$i + 1])) {
